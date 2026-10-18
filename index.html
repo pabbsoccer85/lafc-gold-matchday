@@ -2888,7 +2888,7 @@ function eventPage(){const it=allItems().find(x=>x.uid===state.eventId);if(!it)r
     ${links?`<div class="evp2-maps"><a class="btn ghost" href="${links.g}" target="_blank" rel="noreferrer">🗺 Google Maps</a><a class="btn ghost" href="${links.a}" target="_blank" rel="noreferrer"> Apple Maps</a><button class="btn ghost" data-share-where="${esc(it.where)}">↗ Share</button></div>`:''}
     <div class="evp2-actions"><button class="btn gold" data-ics="${esc(it.uid)}">+📅 Add to my calendar</button>${it.kind==='game'&&!isFinal(it.m)&&!kickedOff(it.m)?`<button class="btn ghost" data-predict-go="${it.m.id}">Call the score →</button>`:''}</div>
     ${live&&!past?`<div class="evp2-mine">${availabilityMine(it.uid)}</div>`:''}`;
-  const avail=live?availabilityPanel(it.uid,past):`<div class="empty" style="margin-top:12px">Going / Maybe / No for every player — with names and who answered — switches on when the site goes live.</div>`;
+  const avail=live?availabilityPanel(it.uid,past):`<div class="empty" style="margin-top:12px">Going / Maybe / No for every player — with names and who answered. Sign in under More → Your account and, once you’re approved, it switches on here.</div>`;
   return `<section class="card evp2"><button class="btn quiet sm ev-back" data-go="${backTab}">‹ Back</button>${hero}${seg}<div class="evp2-body">${tab==='details'?details:avail}</div></section>`}
 function rsvpSummary(uid){if(typeof rsvpFor!=='function'||!state.live)return '';const r=rsvpFor(uid);if(!r.rows.length)return '';return `<span class="rsvp-sum"><i class="g">✓ ${r.counts.going}</i>${r.counts.maybe?`<i class="m">? ${r.counts.maybe}</i>`:''}${r.counts.no?`<i class="n">✕ ${r.counts.no}</i>`:''}</span>`}
 function eventCard(it){const past=it.date<todayISO();const d=new Date(it.date+'T12:00:00');const day=d.getDate(),wd=d.toLocaleDateString('en-US',{weekday:'short'}),mo=d.toLocaleDateString('en-US',{month:'short'});
@@ -3318,7 +3318,7 @@ try{const f=sessionStorage.getItem('gold.flash');if(f){sessionStorage.removeItem
 checkAccess().then(()=>{if(state.tab==='more')render()});
 // one-time celebration when there is a fresh Gold win the viewer hasn't seen
 (function(){const last=lastGoldFinal();if(!last)return;const key='seen.'+last.id;if(store.get(key,false))return;store.set(key,true);const s=goldSide(last);if(s.gf>s.ga)setTimeout(()=>confetti(90),document.querySelector('.intro')?7500:600)})();
-window.GoldApp={state,toast,matches:()=>matches,meta:()=>META,kickedOff,render,go};
+window.GoldApp={state,toast,matches:()=>matches,meta:()=>META,kickedOff,render,go,roster:()=>roster};
 window.addEventListener('fbx-change',()=>{if(window.GoldFB&&!GoldFB.isStaff&&state.canEdit===true&&window.__fbxOn&&!(window.claude&&claude.use))state.canEdit=false;if(window.GoldFB&&GoldFB.isStaff&&state.canEdit!==true)state.canEdit=true;const a=document.activeElement;if(a&&$('#main')&&$('#main').contains(a)&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))return;if(['more','predict','home'].includes(state.tab))renderKeepScroll()});
 window.addEventListener('hashchange',()=>{const t=location.hash.replace('#','');if(t.startsWith('event/')){if(state.eventId!==t.slice(6)||state.tab!=='event')openEvent(t.slice(6));return}if(VALID.includes(t)&&t!==state.tab)go(t)});
 })();
@@ -3615,6 +3615,180 @@ async function sendMsg(){
 delete G.stub;
 changed();
 </script>
+<style id="fbx2-style">
+/* Families add-on (Oct 18 2026): availability + family contacts. All names prefixed fbx2- so nothing existing is touched. */
+.fbx2-fam{display:flex;flex-direction:column}
+.fbx2-fam-row{display:grid;grid-template-columns:40px 1fr;gap:10px;padding:10px 0;border-top:1px solid var(--line);align-items:start}
+.fbx2-fam-row:first-child{border-top:0}
+.fbx2-fam-num{font-family:var(--font-display);font-size:26px;color:var(--gold-2);text-align:center;line-height:1;padding-top:2px}
+.fbx2-fam-name{font-weight:700;font-size:14px}
+.fbx2-fam-name small{font-weight:600;color:var(--muted);font-size:11px;margin-left:6px}
+.fbx2-contact{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;font-size:13px;color:var(--fg-2);margin-top:3px}
+.fbx2-contact b{color:var(--fg);font-weight:600}
+.fbx2-contact i{font-style:normal;color:var(--muted);font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+.fbx2-contact a{color:var(--gold-2);text-decoration:none;white-space:nowrap}
+.fbx2-contact a:hover{text-decoration:underline}
+.fbx2-none{color:var(--muted);font-size:12.5px;margin-top:2px}
+.fbx2-mine-tag{display:inline-block;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold-ink);background:var(--gold);border-radius:999px;padding:2px 7px;margin-left:6px;vertical-align:middle;font-weight:800}
+.fbx2-pick{display:grid;grid-template-columns:1fr 1fr;gap:6px;max-height:50vh;overflow:auto;padding:2px}
+.fbx2-pick label{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--bg-2);font-size:13px;cursor:pointer;text-transform:none;letter-spacing:0;color:var(--fg)}
+.fbx2-pick label.on{border-color:var(--gold);background:linear-gradient(90deg,rgba(201,164,92,.18),var(--bg-2))}
+.fbx2-pick input{width:16px;height:16px;accent-color:var(--gold);margin:0}
+.fbx2-pick .n{font-family:var(--font-display);font-size:20px;color:var(--gold-2);min-width:26px;text-align:center}
+.fbx2-players{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:10px;font-size:13px}
+.fbx2-players .chip{text-transform:none;letter-spacing:0;font-size:12px}
+.fbx2-staffmark{display:inline-flex;gap:3px;margin-left:auto}
+.fbx2-staffmark button{width:26px;height:26px;border-radius:7px;background:var(--surface-2);font-size:12px;font-weight:800;color:var(--fg-2)}
+.fbx2-staffmark button.on.going{background:var(--win);color:#06140b}.fbx2-staffmark button.on.maybe{background:var(--draw);color:#1a1407}.fbx2-staffmark button.on.no{background:var(--loss);color:#1a0606}
+.av-row.fbx2-staffrow{display:flex;align-items:center;gap:10px}
+.av-list:has(.fbx2-staffrow){grid-template-columns:1fr}
+.av-row.fbx2-staffrow>div{flex:1;min-width:0}
+.fbx2-nc-fam{font-size:11px;color:var(--fg-2);margin-top:6px;line-height:1.3}
+.fbx2-nc-fam b{color:var(--gold-2);font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:10px}
+.fbx2-hint{font-size:12.5px;color:var(--muted)}
+</style>
+<script type="module" id="fbx2-families">
+/* Families add-on (Oct 18 2026): who's coming (Going / Maybe / Not going per player, for practices and games)
+   and family contacts on the roster. Only approved team members can see or use any of it.
+   Firestore: members/{uid}.players (which kids are mine), rsvps/{item}_{num}, families/{id}. Rules v2. */
+import {getApp} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import {getFirestore,doc,collection,setDoc,updateDoc,deleteDoc,onSnapshot,writeBatch,serverTimestamp,getDocs} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
+const G=window.GoldFB;if(!G||G.stub){console.warn('fbx2: Firebase layer not ready');}
+const db=getFirestore(getApp());
+const app=()=>window.GoldApp;
+const fx=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const toast=m=>{try{app().toast(m)}catch(e){}};
+const LABEL={going:'Going',maybe:'Maybe',no:'Not going'};
+const roster=()=>{try{return app().roster()||[]}catch(e){return []}};
+function pn(p){const f=String(p.first||'').trim().replace(/\s+/g,' ');const first=f.split(' ')[0]||'';const last=String(p.last||'').trim();const li=(last.match(/[A-Za-zÀ-ÿ]/)||[''])[0].toUpperCase();return `${fx(first.charAt(0).toUpperCase()+first.slice(1))}${li?' '+li+'.':''}`}
+const byNum=n=>roster().find(p=>p.num===n);
+const myName=()=>(G.member&&G.member.name)||(G.user&&(G.user.displayName||(G.user.email||'').split('@')[0]))||'Team member';
+const myPlayers=()=>(G.isApproved&&G.member&&Array.isArray(G.member.players)?G.member.players.map(Number).filter(n=>byNum(n)):[]);
+
+let rsvps=[],families=[];let unsub={};
+function stop(k){if(unsub[k]){try{unsub[k]()}catch(e){}delete unsub[k]}}
+function rerender(){const A=app();if(!A)return;const a=document.activeElement;if(a&&document.getElementById('main')&&document.getElementById('main').contains(a)&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))return;const y=window.scrollY;A.render();window.scrollTo({top:y,behavior:'instant'})}
+
+/* ---------- live switch: follows approval ---------- */
+let wasOn=false;
+function sync(){
+  const on=!!(G&&G.isApproved);const A=app();
+  if(A)A.state.live=on;
+  if(on&&!wasOn){listen()}
+  if(!on&&wasOn){['rsvps','families'].forEach(stop);rsvps=[];families=[]}
+  wasOn=on;
+  augment();
+  if(A&&['event','games','practices','home','squad','more'].includes(A.state.tab))rerender();
+}
+window.addEventListener('fbx-change',()=>setTimeout(sync,0));
+function listen(){
+  stop('rsvps');unsub.rsvps=onSnapshot(collection(db,'rsvps'),s=>{const l=[];s.forEach(d=>{const x=d.data();if(x&&x.item&&x.num!=null&&LABEL[x.status])l.push({id:d.id,...x,num:+x.num})});rsvps=l;rerender()},e=>console.warn('fbx2 rsvps',e));
+  stop('families');unsub.families=onSnapshot(collection(db,'families'),s=>{const l=[];s.forEach(d=>l.push({id:d.id,...d.data()}));l.sort((a,b)=>String(a.name||'').localeCompare(String(b.name||'')));families=l;augment();rerender()},e=>console.warn('fbx2 families',e));
+}
+
+/* ---------- functions the app looks for (window.rsvpFor / availabilityMine / availabilityPanel) ---------- */
+window.rsvpFor=function(item){const rows=rsvps.filter(r=>r.item===item);const by={};for(const r of rows)by[r.num]=r;const counts={going:0,maybe:0,no:0};for(const r of rows)counts[r.status]++;const replied=new Set(rows.map(r=>r.num));const missing=roster().filter(p=>!replied.has(p.num));return{rows,by,counts,missing}};
+const btns=(item,num,cur)=>`<div class="av-btns">${[['going','✓','Going'],['maybe','?','Maybe'],['no','✕','Not going']].map(([st,ic,l])=>`<button class="av-btn ${st} ${cur&&cur.status===st?'on':''}" data-rsvp="${fx(item)}:${num}:${st}" aria-pressed="${cur&&cur.status===st?'true':'false'}"><i>${ic}</i><span>${l}</span></button>`).join('')}</div>`;
+window.availabilityMine=function(item){
+  const r=window.rsvpFor(item);const mine=myPlayers().map(byNum).filter(Boolean);
+  if(!mine.length)return `<div class="av-setup"><div><b>Is your player going?</b><div class="small fg2">Tell the team once who your player is — then it’s one tap per practice or game.</div></div><button class="btn gold" data-fbx2-pick>Who’s your player?</button></div>`;
+  return mine.map(p=>{const cur=r.by[p.num];return `<div class="av-me"><div class="av-me-head"><span class="av-num display">${p.num}</span><div><b>${pn(p)}</b><small>${cur?`${LABEL[cur.status]}${cur.name?' · by '+fx(String(cur.name).split(' ')[0]):''}`:'No answer yet'}</small></div></div>${btns(item,p.num,cur)}</div>`}).join('')+`<button class="btn quiet sm" data-fbx2-pick>Change my players</button>`;
+};
+window.availabilityPanel=function(item,past){
+  const r=window.rsvpFor(item);const total=roster().length||1;const seg=k=>Math.round(r.counts[k]/total*100);const staff=!!G.isStaff&&!past;
+  const mark=(p,cur)=>staff?`<span class="fbx2-staffmark" title="Mark for this player (staff)">${[['going','✓'],['maybe','?'],['no','✕']].map(([st,ic])=>`<button class="${st} ${cur&&cur.status===st?'on':''}" data-rsvp="${fx(item)}:${p.num}:${st}" aria-label="${LABEL[st]} for ${pn(p)}">${ic}</button>`).join('')}</span>`:'';
+  const row=(p,by)=>`<div class="av-row ${staff?'fbx2-staffrow':''}"><span class="av-num display">${p.num}</span><div><b>${pn(p)}</b>${by?`<small>answered by ${fx(by)}</small>`:''}</div>${mark(p,r.by[p.num])}</div>`;
+  const list=st=>{const rows=r.rows.filter(x=>x.status===st).map(x=>({p:byNum(x.num),by:x.name})).filter(x=>x.p).sort((a,b)=>a.p.num-b.p.num);return `<div class="av-group ${st}"><div class="av-group-h"><span class="av-dot"></span><b>${LABEL[st]}</b><span class="av-count">${rows.length}</span></div>${rows.length?`<div class="av-list">${rows.map(({p,by})=>row(p,by)).join('')}</div>`:'<div class="av-empty">Nobody yet</div>'}</div>`};
+  const missing=`<div class="av-group missing"><div class="av-group-h"><span class="av-dot"></span><b>Haven’t replied</b><span class="av-count">${r.missing.length}</span></div>${r.missing.length?`<div class="av-list">${r.missing.slice().sort((a,b)=>a.num-b.num).map(p=>row(p,'')).join('')}</div>`:'<div class="av-empty">Everyone has answered 🎉</div>'}</div>`;
+  return `${past?'':`<div class="evp2-mine">${window.availabilityMine(item)}</div>`}
+    <div class="av-summary"><div class="av-bar"><i class="going" style="width:${seg('going')}%"></i><i class="maybe" style="width:${seg('maybe')}%"></i><i class="no" style="width:${seg('no')}%"></i></div><div class="av-legend"><span class="going"><b>${r.counts.going}</b> going</span><span class="maybe"><b>${r.counts.maybe}</b> maybe</span><span class="no"><b>${r.counts.no}</b> not going</span><span class="missing"><b>${r.missing.length}</b> no reply</span></div></div>
+    ${staff?'<p class="fbx2-hint" style="margin:8px 0 0">Managers and the coach can mark any player with the small ✓ ? ✕ buttons.</p>':''}
+    ${list('going')}${list('maybe')}${list('no')}${missing}`;
+};
+
+/* ---------- saving an answer ---------- */
+async function setRsvp(item,num,status){
+  if(!G.isApproved){G.openAccount();return}
+  const p=byNum(num);if(!p)return;
+  if(!G.isStaff&&!myPlayers().includes(num)){toast('Pick your player first');openPick();return}
+  const id=item+'_'+num;const cur=rsvps.find(r=>r.id===id);
+  try{
+    if(cur&&cur.status===status){await deleteDoc(doc(db,'rsvps',id));toast('Answer cleared')}
+    else{await setDoc(doc(db,'rsvps',id),{item,num,status,uid:G.uid,name:myName(),t:serverTimestamp()});toast(`${pn(p)}: ${LABEL[status]}`)}
+  }catch(e){console.warn('fbx2 rsvp',e);toast('Couldn’t save — try again')}
+}
+
+/* ---------- "Who's your player?" sheet ---------- */
+let pick=null;
+function openPick(){
+  if(!G.isApproved){G.openAccount();return}
+  if(!pick){pick=document.createElement('div');pick.className='fbx-overlay';pick.addEventListener('click',e=>{if(e.target===pick)closePick()});document.body.appendChild(pick)}
+  const sel=new Set(myPlayers());const rs=roster().slice().sort((a,b)=>a.num-b.num);
+  pick.innerHTML=`<div class="fbx-sheet" role="dialog" aria-modal="true" aria-label="Who’s your player?"><div class="fbx-sheet-h"><h3>Who’s your player?</h3><button class="fbx-x" data-fbx2="pick-close" aria-label="Close">×</button></div>
+    <p class="small fg2" style="margin:0 0 10px">Tick your kid (or kids). Then every practice and game is one tap: Going, Maybe or Not going.</p>
+    <div class="fbx2-pick">${rs.map(p=>`<label class="${sel.has(p.num)?'on':''}"><input type="checkbox" value="${p.num}" ${sel.has(p.num)?'checked':''}><span class="n">${p.num}</span><span>${pn(p)}</span></label>`).join('')}</div>
+    <div class="fbx-row" style="margin-top:12px"><button class="btn gold" data-fbx2="pick-save">Save</button><button class="btn ghost" data-fbx2="pick-close">Cancel</button></div></div>`;
+  pick.querySelectorAll('input').forEach(i=>i.addEventListener('change',()=>i.closest('label').classList.toggle('on',i.checked)));
+}
+function closePick(){if(pick){pick.remove();pick=null}}
+async function savePick(){
+  const nums=[...pick.querySelectorAll('input:checked')].map(i=>+i.value);
+  try{await updateDoc(doc(db,'members',G.uid),{players:nums});closePick();toast(nums.length?'Saved — now it’s one tap per game':'Cleared')}
+  catch(e){console.warn('fbx2 players',e);toast('Couldn’t save — try again')}
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&pick)closePick()});
+
+document.addEventListener('click',e=>{
+  const r=e.target.closest('[data-rsvp]');if(r){e.preventDefault();e.stopPropagation();const [item,num,st]=r.dataset.rsvp.split(':');setRsvp(item,+num,st);return}
+  const p=e.target.closest('[data-fbx2-pick]');if(p){e.preventDefault();e.stopPropagation();openPick();return}
+  const b=e.target.closest('[data-fbx2]');if(!b)return;const a=b.dataset.fbx2;
+  if(a==='pick-close')closePick();else if(a==='pick-save')savePick();
+},true);
+
+/* ---------- account card: your players ---------- */
+const origAccount=G.accountCardHTML;
+G.accountCardHTML=function(){
+  let html=origAccount.apply(this,arguments);
+  if(!G.isApproved)return html;
+  const mine=myPlayers().map(byNum).filter(Boolean);
+  const extra=`<div class="fbx2-players"><span class="eyebrow">Your players</span>${mine.length?mine.map(p=>`<span class="chip">#${p.num} ${pn(p)}</span>`).join(''):'<span class="fbx2-hint">not set yet</span>'}<button class="btn quiet sm" data-fbx2-pick>${mine.length?'Change':'Who’s your player?'}</button></div>`;
+  return html.replace(/<\/section>\s*$/,extra+'</section>');
+};
+
+/* ---------- family contacts (Squad tab + card backs), approved only ---------- */
+const famOf=num=>families.filter(f=>(f.players||[]).map(Number).includes(num));
+const tel=s=>String(s||'').replace(/[^\d+]/g,'');
+function famCardHTML(){
+  const rs=roster().slice().sort((a,b)=>a.num-b.num);const mine=new Set(myPlayers());
+  const contact=f=>`<div class="fbx2-contact"><b>${fx(f.name||'')}</b>${f.role?`<i>${fx(f.role)}</i>`:''}${f.phone?`<a href="tel:${fx(tel(f.phone))}">📞 ${fx(f.phone)}</a>`:''}${f.email?`<a href="mailto:${fx(f.email)}">✉️ ${fx(f.email)}</a>`:''}</div>`;
+  const rows=rs.map(p=>{const fs=famOf(p.num);return `<div class="fbx2-fam-row"><span class="fbx2-fam-num">${p.num}</span><div><div class="fbx2-fam-name">${pn(p)}${mine.has(p.num)?'<span class="fbx2-mine-tag">mine</span>':''}${p.pos?`<small>${fx(p.pos)}</small>`:''}</div>${fs.length?fs.map(contact).join(''):'<div class="fbx2-none">No family contact yet</div>'}</div></div>`}).join('');
+  const n=families.filter(f=>(f.players||[]).length).length;
+  return `<section class="card" id="fbx2-families-card"><div class="card-h"><h3>Families</h3><small>${n} contacts · approved members only</small></div><div class="fbx2-fam">${rows}</div><p class="small muted" style="margin:10px 0 0">Tap a number to call or an address to email. Only people approved into this team app can see this page — never the public site.${G.isStaff?' Managers: ask Pablo to add or fix a contact.':''}</p></section>`;
+}
+function augment(){
+  const main=document.getElementById('main');if(!main)return;
+  const old=document.getElementById('fbx2-families-card');
+  const squad=main.querySelector('#squad');
+  if(squad&&G.isApproved){const html=famCardHTML();if(old){if(old.outerHTML!==html)old.outerHTML=html}else squad.insertAdjacentHTML('afterend',html)}
+  else if(old)old.remove();
+  main.querySelectorAll('.ncard[data-flip]').forEach(card=>{const num=+card.dataset.flip;const back=card.querySelector('.nc-back .nc-rows');if(!back)return;let el=back.parentElement.querySelector('.fbx2-nc-fam');const fs=G.isApproved?famOf(num):[];
+    if(!fs.length){if(el)el.remove();return}
+    const txt=`<b>Family</b> ${fs.map(f=>fx(String(f.name||'').split(' ')[0])+(f.role&&!/manager|coach/i.test(f.role)?' ('+fx(f.role)+')':'')).join(' · ')}`;
+    if(!el){el=document.createElement('div');el.className='fbx2-nc-fam';back.insertAdjacentElement('afterend',el)}if(el.innerHTML!==txt)el.innerHTML=txt});
+}
+new MutationObserver(()=>augment()).observe(document.getElementById('main')||document.body,{childList:true});
+
+/* ---------- staff: import/replace the contact list (run once from the console by Pablo) ---------- */
+G.fbx2ImportFamilies=async function(list,replace){
+  if(!G.isStaff)throw new Error('staff only');
+  if(replace){const have=await getDocs(collection(db,'families'));let b=writeBatch(db),n=0;have.forEach(d=>{b.delete(d.ref);if(++n>=400){b.commit();b=writeBatch(db);n=0}});if(n)await b.commit()}
+  let b=writeBatch(db),n=0;
+  for(const f of list){const ref=doc(collection(db,'families'));b.set(ref,{name:String(f.name||'').slice(0,60),role:String(f.role||'').slice(0,40),email:String(f.email||'').slice(0,80),phone:String(f.phone||'').slice(0,30),players:(f.players||[]).map(Number),updatedAt:serverTimestamp(),by:myName()});if(++n>=400){await b.commit();b=writeBatch(db);n=0}}
+  if(n)await b.commit();return list.length;
+};
+G.fbx2={rsvps:()=>rsvps,families:()=>families,myPlayers,openPick};
+sync();
+</script>
 
 </body></html>
