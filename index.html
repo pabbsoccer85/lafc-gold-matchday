@@ -3736,7 +3736,14 @@ const myPlayers=()=>(G.isApproved&&G.member&&Array.isArray(G.member.players)?G.m
 
 let rsvps=[],families=[],famRaw=[],approvedUids=new Set();let unsub={};
 function stop(k){if(unsub[k]){try{unsub[k]()}catch(e){}delete unsub[k]}}
-function rerender(){const A=app();if(!A)return;const a=document.activeElement;if(a&&document.getElementById('main')&&document.getElementById('main').contains(a)&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))return;const y=window.scrollY;A.render();window.scrollTo({top:y,behavior:'instant'})}
+/* fbx6 (Oct 18 2026): live-data updates redraw quietly — no page entrance animation, bursts merged into one redraw,
+   scroll kept. Tab switches still animate. */
+let fbx6Quiet=false,fbx6Q=null,fbx6T=null;
+function fbx6Hush(){fbx6Quiet=true;clearTimeout(fbx6Q);fbx6Q=setTimeout(()=>{fbx6Quiet=false},0)}
+(function(){const m=document.getElementById('main');if(!m)return;new MutationObserver(ms=>{if(!fbx6Quiet)return;for(const x of ms)for(const n of x.addedNodes)if(n.nodeType===1&&n.classList&&n.classList.contains('view'))n.style.animation='none'}).observe(m,{childList:true})})();
+window.addEventListener('fbx-change',fbx6Hush,true);
+function rerender(){clearTimeout(fbx6T);fbx6T=setTimeout(fbx6Redraw,60)}
+function fbx6Redraw(){const A=app();if(!A)return;const a=document.activeElement;if(a&&document.getElementById('main')&&document.getElementById('main').contains(a)&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))return;const y=window.scrollY;fbx6Hush();A.render();window.scrollTo({top:y,behavior:'instant'})}
 
 /* ---------- live switch: follows approval ---------- */
 let wasOn=false;
