@@ -3616,6 +3616,31 @@ async function sendMsg(){
 delete G.stub;
 changed();
 </script>
+<style id="fbx5-style">
+/* Parent registration + tap-a-player family contacts (Oct 18 2026). fbx5- names only. */
+body.fbx5-on .fbx-overlay:not(.fbx5-overlay){display:none}
+.fbx5-overlay{z-index:70}
+.fbx5-sheet{max-width:480px}
+.fbx5-sec{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);font-weight:800;margin:16px 0 4px}
+.fbx5-two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:380px){.fbx5-two{grid-template-columns:1fr;gap:0}}
+.fbx5-select{display:block;width:100%;margin-top:4px;background:var(--bg-2);border:1px solid var(--line-2);color:var(--fg);border-radius:10px;padding:10px 12px;font:inherit;font-size:16px}
+.fbx5-ro{opacity:.65}
+.fbx5-found{background:linear-gradient(90deg,rgba(95,211,138,.14),transparent);border:1px solid rgba(95,211,138,.4);color:var(--fg);border-radius:10px;padding:8px 10px;font-size:13px;margin:6px 0 0}
+.fbx5-pick{max-height:none}
+.fbx5-more{border:1px solid var(--line);border-radius:12px;padding:8px 12px;margin-top:10px;background:var(--bg-2)}
+.fbx5-more summary{cursor:pointer;font-weight:700;font-size:13.5px;color:var(--gold-2)}
+.fbx5-famchip{display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:6px 10px;border-radius:999px;border:1px solid var(--gold-dim);background:rgba(201,164,92,.12);color:var(--gold-2);font-size:12px;font-weight:700;cursor:pointer;position:relative;z-index:2}
+.fbx5-famchip b{background:var(--gold);color:var(--gold-ink);border-radius:999px;padding:0 6px;font-size:11px}
+.roster-row2.fbx5-tap{cursor:pointer}
+.fbx5-num{font-family:var(--font-display);color:var(--gold-2);margin-right:4px}
+.fbx5-contacts{display:flex;flex-direction:column;gap:8px}
+.fbx5-c{background:var(--bg-2);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.fbx5-c-h{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.fbx5-c-h b{font-size:15px}.fbx5-c-h i{font-style:normal;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.fbx5-c-a{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.fbx5-c-a .btn{text-decoration:none}
+</style>
 <style id="fbx4-style">
 /* GotSport link card on the Table tab (Oct 18 2026). fbx4- names only. */
 .fbx4-rank a.btn{text-decoration:none}
@@ -3695,7 +3720,7 @@ changed();
    and family contacts on the roster. Only approved team members can see or use any of it.
    Firestore: members/{uid}.players (which kids are mine), rsvps/{item}_{num}, families/{id}. Rules v2. */
 import {getApp} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-import {getFirestore,doc,collection,setDoc,updateDoc,deleteDoc,onSnapshot,writeBatch,serverTimestamp,getDocs} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import {getFirestore,doc,collection,setDoc,updateDoc,deleteDoc,onSnapshot,writeBatch,serverTimestamp,getDocs,getDoc} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const G=window.GoldFB;if(!G||G.stub){console.warn('fbx2: Firebase layer not ready');}
 const db=getFirestore(getApp());
@@ -3709,7 +3734,7 @@ const byNum=n=>roster().find(p=>p.num===n);
 const myName=()=>(G.member&&G.member.name)||(G.user&&(G.user.displayName||(G.user.email||'').split('@')[0]))||'Team member';
 const myPlayers=()=>(G.isApproved&&G.member&&Array.isArray(G.member.players)?G.member.players.map(Number).filter(n=>byNum(n)):[]);
 
-let rsvps=[],families=[];let unsub={};
+let rsvps=[],families=[],famRaw=[],approvedUids=new Set();let unsub={};
 function stop(k){if(unsub[k]){try{unsub[k]()}catch(e){}delete unsub[k]}}
 function rerender(){const A=app();if(!A)return;const a=document.activeElement;if(a&&document.getElementById('main')&&document.getElementById('main').contains(a)&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))return;const y=window.scrollY;A.render();window.scrollTo({top:y,behavior:'instant'})}
 
@@ -3719,7 +3744,7 @@ function sync(){
   const on=!!(G&&G.isApproved);const A=app();
   if(A)A.state.live=on;
   if(on&&!wasOn){listen()}
-  if(!on&&wasOn){['rsvps','families'].forEach(stop);rsvps=[];families=[]}
+  if(!on&&wasOn){['rsvps','families','fmembers'].forEach(stop);rsvps=[];families=[];famRaw=[];approvedUids=new Set()}
   wasOn=on;
   augment();
   if(A&&['event','games','practices','home','squad','more'].includes(A.state.tab))rerender();
@@ -3727,8 +3752,11 @@ function sync(){
 window.addEventListener('fbx-change',()=>setTimeout(sync,0));
 function listen(){
   stop('rsvps');unsub.rsvps=onSnapshot(collection(db,'rsvps'),s=>{const l=[];s.forEach(d=>{const x=d.data();if(x&&x.item&&x.num!=null&&LABEL[x.status])l.push({id:d.id,...x,num:+x.num})});rsvps=l;rerender()},e=>console.warn('fbx2 rsvps',e));
-  stop('families');unsub.families=onSnapshot(collection(db,'families'),s=>{const l=[];s.forEach(d=>l.push({id:d.id,...d.data()}));l.sort((a,b)=>String(a.name||'').localeCompare(String(b.name||'')));families=l;augment();rerender()},e=>console.warn('fbx2 families',e));
+  stop('families');unsub.families=onSnapshot(collection(db,'families'),s=>{const l=[];s.forEach(d=>l.push({id:d.id,...d.data()}));l.sort((a,b)=>String(a.name||'').localeCompare(String(b.name||'')));famRaw=l;refreshFamilies()},e=>console.warn('fbx2 families',e));
+  stop('fmembers');unsub.fmembers=onSnapshot(collection(db,'members'),s=>{const a=new Set();s.forEach(d=>{const m=d.data();if(m&&(m.status==='approved'||m.role==='admin'))a.add(d.id)});approvedUids=a;refreshFamilies()},e=>console.warn('fbx2 members',e));
 }
+/* contacts saved by people who aren't approved yet stay hidden; TeamSnap-imported contacts (no uid) always show */
+function refreshFamilies(){families=famRaw.filter(f=>!f.uid||approvedUids.has(f.uid)||f.uid===G.uid);augment();rerender();if(famSheet)openFam(famSheet.num)}
 
 /* ---------- functions the app looks for (window.rsvpFor / availabilityMine / availabilityPanel) ---------- */
 window.rsvpFor=function(item){const rows=rsvps.filter(r=>r.item===item);const by={};for(const r of rows)by[r.num]=r;const counts={going:0,maybe:0,no:0};for(const r of rows)counts[r.status]++;const replied=new Set(rows.map(r=>r.num));const missing=roster().filter(p=>!replied.has(p.num));return{rows,by,counts,missing}};
@@ -3784,7 +3812,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&pick)closePick()});
 
 document.addEventListener('click',e=>{
   const r=e.target.closest('[data-rsvp]');if(r){e.preventDefault();e.stopPropagation();const [item,num,st]=r.dataset.rsvp.split(':');setRsvp(item,+num,st);return}
-  const p=e.target.closest('[data-fbx2-pick]');if(p){e.preventDefault();e.stopPropagation();openPick();return}
+  const p=e.target.closest('[data-fbx2-pick]');if(p){e.preventDefault();e.stopPropagation();openReg(true);return}
   const b=e.target.closest('[data-fbx2]');if(!b)return;const a=b.dataset.fbx2;
   if(a==='pick-close')closePick();else if(a==='pick-save')savePick();
 },true);
@@ -3800,14 +3828,15 @@ G.accountCardHTML=function(){
 };
 
 /* ---------- family contacts (Squad tab + card backs), approved only ---------- */
-const famOf=num=>families.filter(f=>(f.players||[]).map(Number).includes(num));
+const famKey=f=>String(f.email||'').trim().toLowerCase()||String(f.phone||'').replace(/\D/g,'')||f.id;
+const famOf=num=>{const seen=new Map();for(const f of families){if(!(f.players||[]).map(Number).includes(num))continue;const k=famKey(f);const cur=seen.get(k);if(!cur||(!cur.uid&&f.uid))seen.set(k,f)}return [...seen.values()].sort((a,b)=>String(a.name||'').localeCompare(String(b.name||'')))};
 const tel=s=>String(s||'').replace(/[^\d+]/g,'');
 function famCardHTML(){
   const rs=roster().slice().sort((a,b)=>a.num-b.num);const mine=new Set(myPlayers());
   const contact=f=>`<div class="fbx2-contact"><b>${fx(f.name||'')}</b>${f.role?`<i>${fx(f.role)}</i>`:''}${f.phone?`<a href="tel:${fx(tel(f.phone))}">📞 ${fx(f.phone)}</a>`:''}${f.email?`<a href="mailto:${fx(f.email)}">✉️ ${fx(f.email)}</a>`:''}</div>`;
   const rows=rs.map(p=>{const fs=famOf(p.num);return `<div class="fbx2-fam-row"><span class="fbx2-fam-num">${p.num}</span><div><div class="fbx2-fam-name">${pn(p)}${mine.has(p.num)?'<span class="fbx2-mine-tag">mine</span>':''}${p.pos?`<small>${fx(p.pos)}</small>`:''}</div>${fs.length?fs.map(contact).join(''):'<div class="fbx2-none">No family contact yet</div>'}</div></div>`}).join('');
-  const n=families.filter(f=>(f.players||[]).length).length;
-  return `<section class="card" id="fbx2-families-card"><div class="card-h"><h3>Families</h3><small>${n} contacts · approved members only</small></div><div class="fbx2-fam">${rows}</div><p class="small muted" style="margin:10px 0 0">Tap a number to call or an address to email. Only people approved into this team app can see this page — never the public site.${G.isStaff?' Managers: ask Pablo to add or fix a contact.':''}</p></section>`;
+  const n=new Set(families.filter(f=>(f.players||[]).length).map(famKey)).size;
+  return `<section class="card" id="fbx2-families-card"><div class="card-h"><h3>Families</h3><small>${n} contacts · approved members only</small></div><div class="fbx2-fam">${rows}</div><p class="small muted" style="margin:10px 0 0">Tap a number to call or an address to email, or tap any player for their family. Parents keep their own info up to date under More → Your account. Only people approved into this team app can see this page — never the public site.${G.isStaff?' Managers: ask Pablo to add or fix a contact.':''}</p></section>`;
 }
 function augment(){
   const main=document.getElementById('main');if(!main)return;
@@ -3815,10 +3844,12 @@ function augment(){
   const squad=main.querySelector('#squad');
   if(squad&&G.isApproved){const html=famCardHTML();if(old){if(old.outerHTML!==html)old.outerHTML=html}else squad.insertAdjacentHTML('afterend',html)}
   else if(old)old.remove();
-  main.querySelectorAll('.ncard[data-flip]').forEach(card=>{const num=+card.dataset.flip;const back=card.querySelector('.nc-back .nc-rows');if(!back)return;let el=back.parentElement.querySelector('.fbx2-nc-fam');const fs=G.isApproved?famOf(num):[];
-    if(!fs.length){if(el)el.remove();return}
-    const txt=`<b>Family</b> ${fs.map(f=>fx(String(f.name||'').split(' ')[0])+(f.role&&!/manager|coach/i.test(f.role)?' ('+fx(f.role)+')':'')).join(' · ')}`;
-    if(!el){el=document.createElement('div');el.className='fbx2-nc-fam';back.insertAdjacentElement('afterend',el)}if(el.innerHTML!==txt)el.innerHTML=txt});
+  main.querySelectorAll('.ncard[data-flip]').forEach(card=>{const num=+card.dataset.flip;const back=card.querySelector('.nc-back .nc-rows');if(!back)return;let el=back.parentElement.querySelector('.fbx5-famchip');
+    const fs=G.isApproved?famOf(num):[];
+    const txt=G.isApproved?`📞 Family contacts${fs.length?` <b>${fs.length}</b>`:''} ›`:`🔒 Family contacts ›`;
+    if(!el){el=document.createElement('span');el.className='fbx5-famchip';el.setAttribute('role','button');el.tabIndex=0;back.insertAdjacentElement('afterend',el)}
+    el.dataset.fbx5Fam=String(num);if(el.innerHTML!==txt)el.innerHTML=txt});
+  main.querySelectorAll('.roster-row2').forEach(r=>{if(r.dataset.fbx5Fam)return;const n=parseInt((r.querySelector('.num')||{}).textContent,10);if(n>=0){r.dataset.fbx5Fam=String(n);r.classList.add('fbx5-tap');r.setAttribute('role','button');r.tabIndex=0}});
 }
 new MutationObserver(()=>augment()).observe(document.getElementById('main')||document.body,{childList:true});
 
@@ -3827,9 +3858,143 @@ G.fbx2ImportFamilies=async function(list,replace){
   if(!G.isStaff)throw new Error('staff only');
   if(replace){const have=await getDocs(collection(db,'families'));let b=writeBatch(db),n=0;have.forEach(d=>{b.delete(d.ref);if(++n>=400){b.commit();b=writeBatch(db);n=0}});if(n)await b.commit()}
   let b=writeBatch(db),n=0;
-  for(const f of list){const ref=doc(collection(db,'families'));b.set(ref,{name:String(f.name||'').slice(0,60),role:String(f.role||'').slice(0,40),email:String(f.email||'').slice(0,80),phone:String(f.phone||'').slice(0,30),players:(f.players||[]).map(Number),updatedAt:serverTimestamp(),by:myName()});if(++n>=400){await b.commit();b=writeBatch(db);n=0}}
+  for(const f of list){const em=String(f.email||'').trim().toLowerCase();const ref=em&&!em.includes('/')?doc(db,'families',em):doc(collection(db,'families'));b.set(ref,{name:String(f.name||'').slice(0,60),role:String(f.role||'').slice(0,40),email:String(f.email||'').slice(0,80),phone:String(f.phone||'').slice(0,30),players:(f.players||[]).map(Number),updatedAt:serverTimestamp(),by:myName()});if(++n>=400){await b.commit();b=writeBatch(db);n=0}}
   if(n)await b.commit();return list.length;
 };
+
+/* ---------- fbx5 (Oct 18 2026): parent registration + tap-a-player family contacts ----------
+   After sign-in (Google or email) a parent must finish registration before using member features:
+   their name, role, phone, their player(s) (or "my player isn't listed"), optional second parent.
+   Saved to members/{uid} (+registered) and families/{email or uid}, families/{uid}_2. Then wait for approval. */
+const ROLES=['Mom','Dad','Guardian','Other'];
+const emailKey=()=>{const e=String((G.user&&G.user.email)||'').trim().toLowerCase();return e&&G.user.emailVerified&&!e.includes('/')?e:''};
+const needsReg=()=>!!(G.ready&&G.user&&!(G.member&&G.member.registered===true));
+let regEl=null,regBusy=false,regDraft=null;
+async function loadDraft(){
+  const d={name:'',role:'',phone:'',email:(G.user&&G.user.email)||'',players:[],newPlayer:'',newNum:'',c2:{name:'',role:'',phone:'',email:''},fromList:false};
+  const m=G.member||{};
+  d.name=m.name||(G.user&&G.user.displayName)||'';d.phone=m.phone||'';d.players=Array.isArray(m.players)?m.players.map(Number):[];
+  if(m.newPlayer){const mm=/^(.*?)(?:\s*#(\d+))?$/.exec(m.newPlayer);d.newPlayer=mm[1]||'';d.newNum=mm[2]||''}
+  const tryGet=async id=>{try{const s=await getDoc(doc(db,'families',id));return s.exists()?s.data():null}catch(e){return null}};
+  const ek=emailKey();const own=(ek&&await tryGet(ek))||await tryGet(G.uid);
+  if(own){d.name=d.name||own.name||'';d.role=own.role||'';d.phone=d.phone||own.phone||'';if(!d.players.length)d.players=(own.players||[]).map(Number);d.fromList=!own.uid}
+  const c2=await tryGet(G.uid+'_2');if(c2)d.c2={name:c2.name||'',role:c2.role||'',phone:c2.phone||'',email:c2.email||''};
+  if(d.role&&!ROLES.includes(d.role))d.role=/mom|mother/i.test(d.role)?'Mom':/dad|father/i.test(d.role)?'Dad':/guard/i.test(d.role)?'Guardian':'Other';
+  return d;
+}
+function readForm(){
+  const v=id=>{const i=regEl&&regEl.querySelector('#'+id);return i?i.value.trim():''};
+  regDraft.name=v('fbx5-name');regDraft.role=v('fbx5-role');regDraft.phone=v('fbx5-phone');
+  regDraft.players=[...regEl.querySelectorAll('.fbx5-pick input:checked')].map(i=>+i.value);
+  regDraft.newPlayer=v('fbx5-np');regDraft.newNum=v('fbx5-nn');
+  regDraft.c2={name:v('fbx5-c2n'),role:v('fbx5-c2r'),phone:v('fbx5-c2p'),email:v('fbx5-c2e')};
+}
+function regHTML(edit,err){
+  const d=regDraft;const rs=roster().slice().sort((a,b)=>a.num-b.num);const sel=new Set(d.players);
+  const opt=(cur)=>`<option value="">Choose…</option>`+ROLES.map(r=>`<option ${r===cur?'selected':''}>${r}</option>`).join('');
+  const showNP=!!(d.newPlayer||d.newNum)||!rs.length;const showC2=!!(d.c2.name||d.c2.phone||d.c2.email);
+  return `<div class="fbx-sheet fbx5-sheet" role="dialog" aria-modal="true" aria-label="Register your family">
+   <div class="fbx-sheet-h"><h3>${edit?'Your family info':'Welcome to Gold'}</h3>${edit?'<button class="fbx-x" data-fbx5="close" aria-label="Close">×</button>':''}</div>
+   ${edit?'':`<p class="small fg2" style="margin:0 0 6px">One quick step before you go in: tell the team who you are and who your player is. Other approved families will see this so you can reach each other.</p>`}
+   ${d.fromList&&!edit?'<div class="fbx5-found">✓ We found you on the team list — check your info and tap Save.</div>':''}
+   <div class="fbx5-sec">You</div>
+   <label class="fbx-field">Your name<input id="fbx5-name" type="text" maxlength="60" autocomplete="name" value="${fx(d.name)}" placeholder="First and last name"></label>
+   <div class="fbx5-two"><label class="fbx-field">You are the player’s<select id="fbx5-role" class="fbx5-select">${opt(d.role)}</select></label>
+   <label class="fbx-field">Phone<input id="fbx5-phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="30" value="${fx(d.phone)}" placeholder="(818) 555-0123"></label></div>
+   <label class="fbx-field">Email<input type="email" value="${fx(d.email)}" readonly class="fbx5-ro"></label>
+   <div class="fbx5-sec">Your player${rs.length?'s':''}</div>
+   ${rs.length?`<div class="fbx2-pick fbx5-pick">${rs.map(p=>`<label class="${sel.has(p.num)?'on':''}"><input type="checkbox" value="${p.num}" ${sel.has(p.num)?'checked':''}><span class="n">${p.num}</span><span>${pn(p)}</span></label>`).join('')}</div>`:'<p class="small fg2" style="margin:0">The roster is empty — add your player below.</p>'}
+   <details class="fbx5-more" ${showNP?'open':''}><summary>${rs.length?'My player isn’t on the list':'Add your player'}</summary>
+     <div class="fbx5-two"><label class="fbx-field">Player’s name<input id="fbx5-np" type="text" maxlength="40" value="${fx(d.newPlayer)}" placeholder="First and last name"></label>
+     <label class="fbx-field">Jersey #<input id="fbx5-nn" type="text" inputmode="numeric" maxlength="3" value="${fx(d.newNum)}" placeholder="#"></label></div>
+     <p class="small muted" style="margin:0">Pablo or a team manager adds new players to the roster.</p></details>
+   <details class="fbx5-more" ${showC2?'open':''}><summary>Add another parent or guardian</summary>
+     <label class="fbx-field">Name<input id="fbx5-c2n" type="text" maxlength="60" value="${fx(d.c2.name)}"></label>
+     <div class="fbx5-two"><label class="fbx-field">Role<select id="fbx5-c2r" class="fbx5-select">${opt(d.c2.role)}</select></label>
+     <label class="fbx-field">Phone<input id="fbx5-c2p" type="tel" inputmode="tel" maxlength="30" value="${fx(d.c2.phone)}"></label></div>
+     <label class="fbx-field">Email<input id="fbx5-c2e" type="email" inputmode="email" maxlength="80" value="${fx(d.c2.email)}"></label></details>
+   <p class="fbx-err" role="alert">${fx(err||'')}</p>
+   <div class="fbx-row"><button class="btn gold" data-fbx5="save" ${regBusy?'disabled':''}>${regBusy?'Saving…':edit?'Save':'Save and continue'}</button>${edit?'<button class="btn ghost" data-fbx5="close">Cancel</button>':''}</div>
+   <p class="small muted" style="margin:10px 0 0">Signed in as ${fx((G.user&&G.user.email)||'')} · <button class="fbx-link" data-fbx5="signout">Sign out</button></p></div>`;
+}
+let regEdit=false;
+async function openReg(edit){
+  if(!G.user){G.openAccount();return}
+  regEdit=!!edit&&!needsReg();
+  if(!regEl){regEl=document.createElement('div');regEl.className='fbx-overlay fbx5-overlay';regEl.addEventListener('click',e=>{if(e.target===regEl&&regEdit)closeReg()});document.body.appendChild(regEl);document.body.classList.add('fbx5-on')}
+  regEl.innerHTML='<div class="fbx-sheet fbx5-sheet"><p class="small muted">Loading…</p></div>';
+  regDraft=await loadDraft();if(!regEl)return;paintReg();
+}
+function paintReg(err){if(!regEl)return;regEl.innerHTML=regHTML(regEdit,err);regEl.querySelectorAll('.fbx5-pick input').forEach(i=>i.addEventListener('change',()=>i.closest('label').classList.toggle('on',i.checked)))}
+function closeReg(){if(regEl){regEl.remove();regEl=null;document.body.classList.remove('fbx5-on')}}
+async function saveReg(){
+  readForm();const d=regDraft;
+  const digits=s=>String(s||'').replace(/\D/g,'');
+  if(!d.name)return paintReg('Please type your name.');
+  if(!d.role)return paintReg('Please choose Mom, Dad, Guardian or Other.');
+  if(digits(d.phone).length<10)return paintReg('Please add a phone number other families can reach you at.');
+  if(!d.players.length&&!d.newPlayer)return paintReg('Pick your player, or add them under “My player isn’t on the list”.');
+  if(d.c2.name&&!d.c2.phone&&!d.c2.email)return paintReg('Add a phone or email for the second parent (or clear their name).');
+  regBusy=true;paintReg();
+  const newPlayer=d.newPlayer?(d.newPlayer.slice(0,40)+(digits(d.newNum)?' #'+digits(d.newNum).slice(0,3):'')):'';
+  const summary=[...d.players.map(n=>{const p=byNum(n);return p?`#${n} ${pn(p).replace(/&[^;]+;/g,'')}`:'#'+n}),newPlayer?'NEW: '+newPlayer:''].filter(Boolean).join(', ').slice(0,120);
+  try{
+    const mref=doc(db,'members',G.uid);
+    if(!G.member){await setDoc(mref,{name:d.name.slice(0,60),email:G.user.email||'',role:'member',status:'pending',playerName:summary,photoURL:G.user.photoURL||'',createdAt:serverTimestamp(),players:d.players,phone:d.phone.slice(0,30),newPlayer,registered:true})}
+    else{await updateDoc(mref,{name:d.name.slice(0,60),playerName:summary,players:d.players,phone:d.phone.slice(0,30),newPlayer,registered:true})}
+    const base={uid:G.uid,players:d.players,updatedAt:serverTimestamp(),by:d.name.slice(0,60)};
+    const ek=emailKey();
+    await setDoc(doc(db,'families',ek||G.uid),{...base,name:d.name.slice(0,60),role:d.role,email:(G.user.email||'').slice(0,80),phone:d.phone.slice(0,30)});
+    if(ek){try{await deleteDoc(doc(db,'families',G.uid))}catch(e){}}
+    const c2ref=doc(db,'families',G.uid+'_2');
+    if(d.c2.name)await setDoc(c2ref,{...base,name:d.c2.name.slice(0,60),role:d.c2.role||'',email:d.c2.email.slice(0,80),phone:d.c2.phone.slice(0,30)});
+    else{try{await deleteDoc(c2ref)}catch(e){}}
+    regBusy=false;const wasEdit=regEdit;closeReg();const fc=document.querySelector('.fbx-overlay:not(.fbx5-overlay) [data-fbx="close"]');if(fc)fc.click();
+    toast(wasEdit?'Saved ✓':(G.isApproved?'You’re all set ✓':'Thanks! Pablo or a manager will approve you soon'));
+  }catch(e){regBusy=false;console.warn('fbx5 save',e);paintReg('Couldn’t save — check your connection and try again.')}
+}
+function checkReg(){
+  if(needsReg()){if(!regEl)openReg(false)}
+  else if(regEl&&!regEdit)closeReg();
+  if(!G.user&&regEl)closeReg();
+}
+window.addEventListener('fbx-change',()=>setTimeout(checkReg,30));
+
+/* ---------- tap a player → family contacts sheet ---------- */
+let famSheet=null;
+function openFam(num){
+  const p=byNum(+num);if(!p)return;
+  if(!famSheet){const el=document.createElement('div');el.className='fbx-overlay fbx5-overlay';el.addEventListener('click',e=>{if(e.target===el)closeFam()});document.body.appendChild(el);famSheet={el,num:+num}}
+  famSheet.num=+num;
+  let body;
+  if(!G.user)body=`<p class="small fg2" style="margin:0 0 12px">Family contacts are for team families. Sign in and register — once Pablo or a manager approves you, you can reach every family from here.</p><button class="btn gold wide" data-fbx5="signin">Sign in or join</button>`;
+  else if(needsReg())body=`<p class="small fg2" style="margin:0 0 12px">Finish registering first, then you’ll see family contacts once you’re approved.</p><button class="btn gold wide" data-fbx5="reg">Finish registering</button>`;
+  else if(!G.isApproved)body=`<p class="small fg2" style="margin:0">You’re registered ✓ Waiting for Pablo or a team manager to approve you — family contacts open up as soon as they do.</p>`;
+  else{const fs=famOf(p.num);const mine=myPlayers().includes(p.num);
+    body=fs.length?`<div class="fbx5-contacts">${fs.map(f=>`<div class="fbx5-c"><div class="fbx5-c-h"><b>${fx(f.name||'')}</b>${f.role?`<i>${fx(f.role)}</i>`:''}</div><div class="fbx5-c-a">${f.phone?`<a class="btn ghost sm" href="tel:${fx(tel(f.phone))}">📞 ${fx(f.phone)}</a><a class="btn ghost sm" href="sms:${fx(tel(f.phone))}">💬 Text</a>`:''}${f.email?`<a class="btn ghost sm" href="mailto:${fx(f.email)}">✉️ Email</a>`:''}</div></div>`).join('')}</div>`
+      :`<p class="small fg2" style="margin:0">No family has registered for ${pn(p)} yet.</p>`;
+    if(mine)body+=`<button class="btn quiet sm" data-fbx5="reg-edit" style="margin-top:10px">Edit my family info</button>`;}
+  famSheet.el.innerHTML=`<div class="fbx-sheet fbx5-sheet" role="dialog" aria-modal="true" aria-label="Family of ${fx(p.first||'')}"><div class="fbx-sheet-h"><h3><span class="fbx5-num">${p.num}</span> ${pn(p)}</h3><button class="fbx-x" data-fbx5="fam-close" aria-label="Close">×</button></div><div class="fbx5-sec" style="margin-top:0">Family contacts</div>${body}</div>`;
+}
+function closeFam(){if(famSheet){famSheet.el.remove();famSheet=null}}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(famSheet)closeFam();else if(regEl&&regEdit)closeReg()}});
+document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.closest&&e.target.closest('[data-fbx5-fam]')){e.preventDefault();e.stopPropagation();openFam(e.target.closest('[data-fbx5-fam]').dataset.fbx5Fam)}},true);
+
+document.addEventListener('click',async e=>{
+  const fam=e.target.closest('[data-fbx5-fam]');if(fam){e.preventDefault();e.stopPropagation();openFam(fam.dataset.fbx5Fam);return}
+  // signed in but not registered: "Finish joining" / "Ask to join" go to the registration page instead
+  const acct=e.target.closest('[data-fbx="account"],[data-fbx="join"]');if(acct&&needsReg()){e.preventDefault();e.stopImmediatePropagation();openReg(false);return}
+  const b=e.target.closest('[data-fbx5]');if(!b)return;const a=b.dataset.fbx5;
+  if(a==='save'){e.preventDefault();saveReg()}
+  else if(a==='close')closeReg();
+  else if(a==='fam-close')closeFam();
+  else if(a==='signin'){closeFam();G.openAccount()}
+  else if(a==='reg'){closeFam();openReg(false)}
+  else if(a==='reg-edit'){closeFam();openReg(true)}
+  else if(a==='signout'){closeReg();const s=document.querySelector('[data-fbx="signout"]');if(s)s.click();else{const {getAuth,signOut}=await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js');await signOut(getAuth(getApp()))}}
+},true);
+G.fbx5={openReg,openFam,needsReg};
+
 G.fbx2={rsvps:()=>rsvps,families:()=>families,myPlayers,openPick};
 sync();
 </script>
