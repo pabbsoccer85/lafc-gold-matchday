@@ -2545,6 +2545,80 @@ window.addEventListener('hashchange',()=>{const t=location.hash.replace('#','');
 
 <\/script>
 </script>
+<style id="fbx-style">
+/* Firebase add-on (Oct 18 2026): sign-in sheet, team chat panel, account & members cards. All classes start with fbx- so nothing existing is touched. */
+.fbx-overlay{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center;animation:fbx-fade .18s ease-out}
+@media(min-width:700px){.fbx-overlay{align-items:center}}
+@keyframes fbx-fade{from{opacity:0}to{opacity:1}}
+.fbx-sheet{width:100%;max-width:440px;max-height:92vh;overflow:auto;background:var(--surface);border:1px solid var(--line-2);border-radius:18px 18px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom,0px));box-shadow:0 -10px 40px rgba(0,0,0,.4)}
+@media(min-width:700px){.fbx-sheet{border-radius:18px}}
+.fbx-sheet-h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.fbx-sheet-h h3{font-family:var(--font-display);font-size:24px;letter-spacing:.04em;color:var(--fg);margin:0}
+.fbx-x{background:none;border:0;color:var(--muted);font-size:26px;line-height:1;cursor:pointer;padding:4px 8px}
+.fbx-sheet p{margin:0 0 10px}
+.fbx-field{display:block;margin:8px 0;font-size:12px;color:var(--muted)}
+.fbx-field input{display:block;width:100%;margin-top:4px;background:var(--bg-2);border:1px solid var(--line-2);color:var(--fg);border-radius:10px;padding:10px 12px;font:inherit;font-size:16px}
+.fbx-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.fbx-row .btn{flex:1}
+.fbx-or{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px;margin:14px 0 6px}
+.fbx-or:before,.fbx-or:after{content:"";flex:1;height:1px;background:var(--line)}
+.fbx-google{width:100%;background:#fff;color:#1f1f1f;border:1px solid #dadce0}
+.fbx-google svg{width:18px;height:18px}
+.fbx-err{color:var(--loss);font-size:13px;min-height:1.2em;margin:8px 0 0}
+.fbx-link{background:none;border:0;color:var(--gold-2);font:inherit;font-size:13px;cursor:pointer;padding:0;text-decoration:underline}
+.fbx-me{display:flex;align-items:center;gap:12px}
+.fbx-av{width:42px;height:42px;border-radius:50%;background:var(--surface-2);border:1px solid var(--gold-dim);display:grid;place-items:center;font-weight:800;color:var(--gold-2);overflow:hidden;flex:none}
+.fbx-av img{width:100%;height:100%;object-fit:cover}
+.fbx-role{display:inline-block;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold-ink);background:var(--gold);border-radius:999px;padding:2px 8px;margin-left:6px;vertical-align:middle}
+.fbx-pill{display:inline-block;font-size:11px;font-weight:700;border-radius:999px;padding:2px 8px;border:1px solid var(--line-2);color:var(--fg-2)}
+.fbx-pill.pending{border-color:var(--gold-dim);color:var(--gold-2)}
+.fbx-mem{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.fbx-mem:first-child{border-top:0}
+.fbx-mem .who{flex:1;min-width:0}
+.fbx-mem .who b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fbx-mem .who small{color:var(--muted);font-size:12px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fbx-mem select{width:auto;font-size:13px;padding:6px 8px}
+.fbx-chat{position:fixed;z-index:61;right:0;bottom:0;left:0;height:min(86vh,720px);display:flex;flex-direction:column;background:var(--bg);border:1px solid var(--line-2);border-radius:18px 18px 0 0;box-shadow:0 -10px 40px rgba(0,0,0,.5);animation:fbx-up .2s ease-out}
+@media(min-width:700px){.fbx-chat{left:auto;right:24px;bottom:24px;width:400px;height:min(78vh,680px);border-radius:18px}}
+@keyframes fbx-up{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
+.fbx-chat-h{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.fbx-chat-h h3{flex:1;margin:0;font-family:var(--font-display);font-size:22px;letter-spacing:.05em;color:var(--fg)}
+.fbx-chat-h small{color:var(--muted);font-size:12px}
+.fbx-msgs{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.fbx-msg{max-width:82%;align-self:flex-start;background:var(--surface);border:1px solid var(--line);border-radius:14px 14px 14px 4px;padding:8px 11px}
+.fbx-msg.mine{align-self:flex-end;background:linear-gradient(180deg,var(--gold-2),var(--gold));color:var(--gold-ink);border-color:transparent;border-radius:14px 14px 4px 14px}
+.fbx-msg .meta{display:flex;gap:8px;align-items:baseline;font-size:11px;color:var(--muted);margin-bottom:2px}
+.fbx-msg.mine .meta{color:rgba(26,20,7,.7)}
+.fbx-msg .meta b{color:var(--gold-2);font-size:12px}
+.fbx-msg.mine .meta b{color:var(--gold-ink)}
+.fbx-msg .txt{white-space:pre-wrap;word-wrap:break-word;font-size:15px;line-height:1.35}
+.fbx-del{background:none;border:0;color:inherit;opacity:.55;cursor:pointer;font-size:13px;margin-left:auto;padding:0 2px}
+.fbx-day{align-self:center;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:6px 0 2px}
+.fbx-compose{display:flex;gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line);background:var(--bg-2)}
+.fbx-compose textarea{flex:1;resize:none;min-height:42px;max-height:120px;font-size:16px;padding:10px 12px;border-radius:12px}
+.fbx-compose .btn{align-self:flex-end}
+.fbx-chat-foot{padding:6px 14px;font-size:12px;color:var(--muted);text-align:center;border-top:1px solid var(--line)}
+.fbx-chat-foot a{color:var(--gold-2)}
+.fbx-empty{margin:auto;text-align:center;color:var(--muted);font-size:14px;padding:20px}
+.fbx-dot{position:absolute;top:2px;right:2px;width:13px;height:13px;border-radius:50%;background:var(--loss);border:2px solid var(--bg)}
+@media print{.fbx-overlay,.fbx-chat{display:none!important}}
+</style>
+<script id="fbx-boot">
+/* Firebase add-on boot (runs before the app). Uses the newest manager-published data cached on this device, and sets up a placeholder GoldFB until Firebase loads. */
+(function(){
+  window.__fbxOn=true;
+  var el=document.getElementById('gold-data'),embedded='';
+  try{embedded=JSON.parse(el.textContent).meta.lastChecked||''}catch(e){}
+  window.__fbxDataLastChecked=embedded;
+  try{var c=JSON.parse(localStorage.getItem('gold.fbData')||'null');
+    if(c&&c.json&&c.lastChecked&&c.lastChecked>embedded){JSON.parse(c.json);el.textContent=c.json;window.__fbxDataLastChecked=c.lastChecked}}catch(e){}
+  var done;window.goldFBReady=new Promise(function(r){done=r});window.__fbxReadyDone=done;
+  setTimeout(function(){done(false)},9000);
+  window.GoldFB={stub:true,ready:false,user:null,member:null,isApproved:false,isStaff:false,uid:null,entries:[],members:[],
+    accountCardHTML:function(){return '<section class="card"><div class="card-h"><h3>Your account</h3><small>team sign-in</small></div><p class="small muted" style="margin:0">Connecting…</p></section>'},
+    membersCardHTML:function(){return ''},openChat:function(){},openAccount:function(){},picksChanged:function(){}};
+})();
+</script>
 <script>
 /* LAFC Gold Matchday — app. Vanilla JS. Data lives in #gold-data; crests in #gold-crests. */
 (function(){
@@ -2565,7 +2639,7 @@ let scorers=DATA.scorers||{};
 const META=DATA.meta;let events=(META.events||[]).slice().sort((a,b)=>(a.date+(a.time||'')).localeCompare(b.date+(b.time||'')));
 const crestSrc=id=>CRESTS.files[CRESTS.map[String(id)]]||'';
 const crest=(id,size='md')=>`<span class="crest ${size} ${id===GOLD?'gold':''}">${crestSrc(id)?`<img src="${crestSrc(id)}" alt="">`:'<small>'+esc(T(id).initials)+'</small>'}</span>`;
-const store={get(k,d){try{const v=localStorage.getItem('gold.'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem('gold.'+k,JSON.stringify(v))}catch(e){}}};
+const store={get(k,d){try{const v=localStorage.getItem('gold.'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem('gold.'+k,JSON.stringify(v))}catch(e){}if(k==='picks'&&window.GoldFB&&GoldFB.picksChanged)try{GoldFB.picksChanged(v)}catch(e){}}};
 const THEME_KEY='theme';function applyTheme(t){document.documentElement.dataset.theme=t;try{const m=document.querySelector('meta[name=theme-color]');if(m)m.setAttribute('content',t==='light'?'#faf8f3':'#0a0a0c')}catch(e){}}
 function currentTheme(){return store.get(THEME_KEY,'dark')}
 applyTheme(currentTheme());
@@ -2657,6 +2731,7 @@ const ICONS={home:'<svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1
 const TABS=[['home','Matchday'],['table','Table'],['games','Games'],['practices','Practices'],['predict','Predict'],['squad','Squad'],['more','More']];
 
 function chatFab(){const link=(META.chatLink||'').trim();const inner=`<span class="chat-fab-ring"></span><span class="chat-fab-btn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H9.4L5.6 19.3c-.6.5-1.6.1-1.6-.7V5.5z" fill="currentColor"/><circle cx="9" cy="9.5" r="1.2" fill="#0a0a0c"/><circle cx="12.2" cy="9.5" r="1.2" fill="#0a0a0c"/><circle cx="15.4" cy="9.5" r="1.2" fill="#0a0a0c"/></svg></span><span class="chat-fab-label display">Team chat</span>`;
+  if(window.__fbxOn)return `<button class="chat-fab" id="chat-fab" type="button" aria-label="Open the team chat">${inner}</button>`;
   return link?`<a class="chat-fab" id="chat-fab" href="${esc(link)}" target="_blank" rel="noreferrer" aria-label="Open the team chat">${inner}</a>`:`<button class="chat-fab" id="chat-fab" type="button" aria-label="Team chat">${inner}</button>`}
 function shell(){
   app.innerHTML=`<div class="shell">
@@ -2903,19 +2978,22 @@ function predict(){
     <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center"><button class="btn ghost" id="run-sim">⚡ Play the rest of the season 2,000 times</button><span class="small muted">see how often Gold finishes 1st</span></div>
     </div>
   </section>
+  ${window.__fbxOn?poolSection():''}
   <details class="howto"><summary>How the predictions work</summary><p>Team strength is estimated from every final score in the league, adjusted for who each team played (six small ridge-regression models with winning margins capped at 3 or 5 goals). A normal distribution turns the strength gap into win / draw / loss odds. Your locked picks count as results in the projected table but never change the real standings. The season simulator replays the remaining fixtures 2,000 times with a little extra uncertainty per team. Scoring: 3 points for an exact score, 1 for the right result.</p></details>`;
 }
 function distChart(dist,runs){const W=600,H=140,pl=10,pb=22;const max=Math.max(...dist,1);const bw=(W-2*pl)/N;return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Where Gold finishes across simulated seasons">${dist.map((v,i)=>{const h=(v/max)*(H-pb-14);const x=pl+i*bw;return `<rect x="${x+2}" y="${H-pb-h}" width="${bw-4}" height="${h}" rx="3" fill="${i<3?'var(--gold)':i<6?'var(--gold-dim)':'var(--line-2)'}"/><text class="axis" x="${x+bw/2}" y="${H-6}" text-anchor="middle">${i+1}</text>${v/runs>=.08?`<text x="${x+bw/2}" y="${H-pb-h-4}" text-anchor="middle" style="font-size:10px;fill:var(--fg-2)">${Math.round(v/runs*100)}%</text>`:''}`}).join('')}</svg>`}
 function poolSection(){
-  const entries=pool.map(e=>({...e,s:scoreEntry(e)})).sort((a,b)=>b.s.pts-a.s.pts||b.s.exact-a.s.exact||a.name.localeCompare(b.name));
+  const fbOn=!!(window.GoldFB&&GoldFB.isApproved);
+  const entries=(fbOn?GoldFB.entries:pool).map(e=>({...e,s:scoreEntry(e)})).sort((a,b)=>b.s.pts-a.s.pts||b.s.exact-a.s.exact||a.name.localeCompare(b.name));
   const mine=Object.keys(state.picks).length?{name:state.name||'You',picks:state.picks}:null;const myScore=mine?scoreEntry(mine):null;
   const code=mine&&state.name?makeCode(state.name,state.picks):'';
   return `<section class="card"><div class="card-h"><h3>Parents’ pool · leaderboard</h3><small>${entries.length} ${entries.length===1?'entry':'entries'}</small></div>
     <div class="grid-2"><div>
-      ${entries.length?`<div class="lb">${entries.map((e,i)=>`<div class="lb-row ${state.name&&e.name.toLowerCase()===state.name.toLowerCase()?'me':''}"><div class="medal">${i===0?'🥇':i===1?'🥈':i===2?'🥉':`<span class="rank">${i+1}</span>`}</div><div class="who"><b>${esc(e.name)}</b><small>${e.s.exact} exact · ${e.s.results} right result · ${e.s.graded}/${e.s.total} games graded</small></div><div class="pts num">${e.s.pts}<small>PTS</small></div></div>`).join('')}</div>`:'<div class="empty">No entries yet. Be the first name on the board.</div>'}
+      ${entries.length?`<div class="lb">${entries.map((e,i)=>`<div class="lb-row ${(fbOn?e.uid===GoldFB.uid:state.name&&e.name.toLowerCase()===state.name.toLowerCase())?'me':''}"><div class="medal">${i===0?'🥇':i===1?'🥈':i===2?'🥉':`<span class="rank">${i+1}</span>`}</div><div class="who"><b>${esc(e.name)}</b><small>${e.s.exact} exact · ${e.s.results} right result · ${e.s.graded}/${e.s.total} games graded</small></div><div class="pts num">${e.s.pts}<small>PTS</small></div></div>`).join('')}</div>`:'<div class="empty">No entries yet. Be the first name on the board.</div>'}
     </div><div>
       <div class="eyebrow" style="margin-bottom:6px">Join the pool</div>
-      ${mine?`<p class="small fg2" style="margin:0 0 8px">You have ${Object.keys(state.picks).length} picks${myScore.graded?` worth <b>${myScore.pts} pts</b> so far`:''}. Put a name on them and send the code to Pablo — he adds it to the board.</p>
+      ${fbOn?`<p class="small fg2" style="margin:0">You’re on the team board as <b>${esc((GoldFB.member&&GoldFB.member.name)||(GoldFB.user&&GoldFB.user.displayName)||'you')}</b>. Every pick you lock saves to the board automatically ✓${mine&&myScore.graded?` · <b>${myScore.pts} pts</b> so far`:''}</p>`:window.__fbxOn?`<p class="small fg2" style="margin:0 0 8px">Sign in and your picks go on the shared team board automatically.</p><button class="btn gold" data-fbx="account" style="margin-bottom:12px">Sign in to join the board</button>`:''}
+      ${fbOn?'':mine?`<p class="small fg2" style="margin:0 0 8px">You have ${Object.keys(state.picks).length} picks${myScore.graded?` worth <b>${myScore.pts} pts</b> so far`:''}. Put a name on them and send the code to Pablo — he adds it to the board.</p>
       <label class="small muted" style="display:block">Your name<input type="text" id="pool-name" maxlength="40" placeholder="e.g. Coach Mike, Sofia’s mom" value="${esc(state.name)}"></label>
       ${code?`<div class="code-box" id="pool-code" style="margin-top:8px">${esc(code)}</div><div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button class="btn gold" id="copy-code">Copy my pick code</button><button class="btn ghost" id="copy-code-msg">Copy as text message</button></div><p class="small muted" style="margin:8px 0 0">Update your picks any time and send a new code — the newest one counts.</p>`:'<p class="small muted" style="margin:8px 0 0">Type your name to get your pick code.</p>'}`:'<p class="small fg2" style="margin:0">Lock in a few scores first, then your pick code appears here.</p>'}
     </div></div></section>`;
@@ -3040,7 +3118,9 @@ function more(){
 
     <section class="card"><div class="card-h"><h3>Share the hub</h3><small>send it to the team chat</small></div><p class="small fg2" style="margin:0 0 10px">Anyone with the link can open this — no app, no sign-in. Save it to your phone’s home screen for one-tap matchday access.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn gold" id="share-native">📲 Send to a parent…</button><button class="btn ghost" id="copy-link">Copy link</button><button class="btn ghost" id="copy-blurb">Copy invite text</button></div><p class="small muted" style="margin:8px 0 0">“Send to a parent” opens your phone’s share sheet — Messages, WhatsApp, email — with the invite already written.</p>
       <div style="margin-top:14px"><div class="eyebrow" style="margin-bottom:6px">Score card</div><canvas class="share-card" id="share-canvas" width="1080" height="1080" style="aspect-ratio:1"></canvas><p class="small muted" style="margin:6px 0 0">Press and hold the picture to save it, then post it anywhere.</p></div></section>
+    ${window.__fbxOn&&window.GoldFB?GoldFB.accountCardHTML():''}
   </div>
+  ${window.__fbxOn&&window.GoldFB?GoldFB.membersCardHTML():''}
   <section class="card"><div class="card-h"><h3>About the data</h3><small>${esc(META.updatedBy||'')}</small></div><div class="kv"><span>Official scores checked</span><b>${esc(META.snapshotLabel)}</b></div><div class="kv"><span>Auto-refresh</span><b>Sat & Sun · morning, afternoon, night</b></div><div class="kv"><span>Teams · fixtures · played</span><b class="num">${N} · ${matches.length} · ${finals().length}</b></div>${(META.notes||[]).map(n=>`<div class="kv"><span>Note</span><b style="font-weight:500;text-align:left">${esc(n)}</b></div>`).join('')}
     ${mgrVisible?`<div style="margin-top:12px"><button class="btn ghost wide" id="open-mgr">${state.mgr?'Close manager mode':'⚙ Manager mode'}</button></div>`:''}
   </section>
@@ -3058,7 +3138,7 @@ function manager(){
   const recentFirst=weeks.slice().sort((a,b)=>Math.abs(new Date(a.date)-new Date(t))-Math.abs(new Date(b.date)-new Date(t)));
   const row=m=>{const e=effective(m);const dirty=!!ed[m.id];return `<div class="mgr-row ${dirty?'changed':''}" data-mid="${m.id}"><div class="t">${crest(m.home,'sm')}<span>${esc(T(m.home).short)}</span></div><input type="number" inputmode="numeric" min="0" max="30" data-mgr="${m.id}:hg" value="${e.hg??''}" aria-label="home goals"><span class="muted">–</span><input type="number" inputmode="numeric" min="0" max="30" data-mgr="${m.id}:ag" value="${e.ag??''}" aria-label="away goals"><div class="t r"><span>${esc(T(m.away).short)}</span>${crest(m.away,'sm')}</div><div class="mgr-meta"><select data-mgr="${m.id}:status"><option value="scheduled" ${e.status==='scheduled'?'selected':''}>Scheduled</option><option value="final" ${e.status==='final'?'selected':''}>Final</option><option value="unreported" ${e.status==='unreported'?'selected':''}>Played, not posted</option><option value="postponed" ${e.status==='postponed'?'selected':''}>Postponed</option></select><span>${e.time?esc(e.time)+' PT':''} ${e.venue?'· '+esc(e.venue):''}</span>${(m.home===GOLD||m.away===GOLD)?`<select data-mgr="${m.id}:kit" aria-label="Kit for this game"><option value="" ${!e.kit?'selected':''}>👕 Default kit (${m.home===GOLD?esc(META.kitHome||'home'):esc(META.kitAway||'away')})</option>${KITS.map(k=>`<option value="${k}" ${e.kit===k?'selected':''}>👕 ${k}</option>`).join('')}</select>`:''}${dirty?`<button class="btn quiet sm" data-mgr-undo="${m.id}">undo</button>`:''}</div></div>`};
   return `<section class="card" id="mgr" style="border-color:var(--gold-dim)"><div class="card-h"><h3>⚙ Manager mode</h3><small>${state.canEdit===true?'you can publish':state.canEdit===false?'read-only here':'checking access…'}</small></div>
-    <div class="banner ${state.canEdit===false?'warn':''}">${state.canEdit===false?'This device can’t publish changes (not signed in as the owner). You can still try things out locally.':'Type scores, set a status, then <b>Publish</b>. Everyone with the link sees the update within seconds. Blank score = not played.'}</div>
+    <div class="banner ${state.canEdit===false?'warn':''}">${state.canEdit===false?(window.__fbxOn?'To publish, sign in with an approved manager, coach or owner account (More → Your account). You can still try things out locally.':'This device can’t publish changes (not signed in as the owner). You can still try things out locally.'):'Type scores, set a status, then <b>Publish</b>. Everyone with the link sees the update within seconds. Blank score = not played.'}</div>
     <details hidden><summary></summary></details><div class="mgr-top"><div class="controls" style="margin:12px 0"><label>Home kit<select id="mgr-kit-home">${KITS.map(k=>`<option value="${k}" ${(state.mgrKitHome??META.kitHome)===k?'selected':''}>${k}</option>`).join('')}</select></label><label>Away kit<select id="mgr-kit-away">${KITS.map(k=>`<option value="${k}" ${(state.mgrKitAway??META.kitAway)===k?'selected':''}>${k}</option>`).join('')}</select></label><label>Arrive before kickoff (min)<input type="number" id="mgr-arrive" min="0" max="180" value="${state.mgrArrive??META.arriveMinutes??45}"></label><label>Scores-as-of label<input type="text" id="mgr-label" value="${esc(state.mgrLabel??META.snapshotLabel)}"></label><label>Paste a goal report code<input type="text" id="mgr-code" placeholder="GOLD1G.…"></label><button class="btn ghost" id="mgr-add-code">Add</button></div></div><details hidden>
     </details><details class="mgr-sec" data-sec="links-moments" ${mgrOpen('links-moments',false)?'open':''}><summary><span class="eyebrow">Links & moments</span></summary>
     <div class="controls" style="margin:0 0 12px"><label>Team chat link (WhatsApp / TeamSnap group)<input type="url" id="mgr-chatlink" placeholder="https://chat.whatsapp.com/…" value="${esc(state.mgrChatLink??META.chatLink??'')}"></label><label>Team album link (Google Photos)<input type="url" id="mgr-album" placeholder="https://photos.app.goo.gl/…" value="${esc(state.mgrAlbum??META.momentsAlbum??'')}"></label></div>
@@ -3100,7 +3180,8 @@ function pubStatus(msg,done){const st=$('#mgr-status');if(st)st.textContent=msg;
 async function publishChanges(){
   pubStatus('Publishing…',false);
   try{
-    let art=state.artifact;if(!art){try{art=await claude.use('artifact')}catch(e){art=null}}if(!art)throw{code:'not_granted'};
+    const fbPub=!!(window.__fbxOn&&window.GoldFB&&GoldFB.isStaff&&GoldFB.publishData);
+    let art=state.artifact;if(!fbPub&&!art){try{art=await claude.use('artifact')}catch(e){art=null}}if(!fbPub&&!art)throw{code:'not_granted'};
     const newMatches=applyEdits();const newPool=state.mgrPool||pool;const label=(state.mgrLabel??META.snapshotLabel).trim();
     const fin=newMatches.filter(isFinal).length;
     const newRoster=(state.mgrRoster||roster).map(({g,a,...p})=>p);const newScorers=state.mgrScorers||scorers;
@@ -3109,9 +3190,10 @@ async function publishChanges(){
     const goals=Object.values(newScorers).reduce((s,rows)=>s+rows.reduce((x,r)=>x+(r.g||0),0),0);
     try{sessionStorage.setItem('gold.flash',`Published · ${fin} games played · ${goals} goals credited · ${newPool.length} pool entries`)}catch(e){}
     if(window.__goldTestPublish){window.__goldTestPublish(out);pubStatus('Published (test).',true);return}
+    if(fbPub){await GoldFB.publishData(newData);pubStatus('Published! Reloading…',true);setTimeout(()=>location.reload(),900);return}
     await art.publish(out);
     pubStatus('Published! Reloading…',true);
-  }catch(e){const code=e&&e.code;const msg=code==='not_writer'||code==='not_granted'?'This device can’t publish — sign in to Claude as the owner (Pablo) and try again.':code==='conflict'?'Someone else just published — reloading to the newest version.':code==='no_template'||code==='bad_template'?'The page couldn’t rebuild itself. Tell Pablo.':'Publish failed: '+(e&&e.message||code||'unknown');pubStatus(msg,true);if(code==='not_writer'||code==='not_granted')state.canEdit=false;const b=$('#mgr-publish');if(b)b.textContent='Publish changes';const r=$('#rep-save');if(r)r.textContent='Save to the app ✓';if(state.canEdit===false)render()}
+  }catch(e){const code=e&&e.code;const msg=code==='not_writer'||code==='not_granted'?(window.__fbxOn?'This device can’t publish — sign in with a manager, coach or owner account (More → Your account).':'This device can’t publish — sign in to Claude as the owner (Pablo) and try again.'):code==='too_big'?'Too much to save at once (photos are large) — remove a moment photo and try again.':code==='permission-denied'?'Firebase said no — your account needs the manager, coach or owner role.':code==='conflict'?'Someone else just published — reloading to the newest version.':code==='no_template'||code==='bad_template'?'The page couldn’t rebuild itself. Tell Pablo.':'Publish failed: '+(e&&e.message||code||'unknown');pubStatus(msg,true);if(code==='not_writer'||code==='not_granted')state.canEdit=false;const b=$('#mgr-publish');if(b)b.textContent='Publish changes';const r=$('#rep-save');if(r)r.textContent='Save to the app ✓';if(state.canEdit===false)render()}
 }
 
 /* ---------- Wire up ---------- */
@@ -3169,7 +3251,7 @@ function wire(){
   $$('[data-ev-del]').forEach(b=>b.onclick=()=>{const cur=(state.mgrEvents||events).slice();cur.splice(+b.dataset.evDel,1);state.mgrEvents=cur;renderKeepScroll()});
   const ma=$('#mom-add');if(ma)ma.onclick=()=>$('#mom-file')?.click();
   const mf=$('#mom-file');if(mf)mf.onchange=()=>{const f=mf.files&&mf.files[0];if(f)momentPicked(f)};
-  const cf=$('#chat-fab');if(cf&&cf.tagName==='BUTTON')cf.onclick=()=>toast('Team chat link is coming soon — Pablo is setting it up.');
+  const cf=$('#chat-fab');if(cf&&cf.tagName==='BUTTON')cf.onclick=()=>{if(window.__fbxOn&&window.GoldFB){GoldFB.openChat();return}toast('Team chat link is coming soon — Pablo is setting it up.')};
   const rsv=$('#rep-save');if(rsv)rsv.onclick=async()=>{const mid=state.rep.mid||goldMatches().filter(isFinal).slice(-1)[0].id;const rows=Object.entries(state.rep.rows[mid]||{}).filter(([,v])=>v.g||v.a).map(([n,v])=>({num:+n,g:v.g,a:v.a}));state.mgrScorers={...(state.mgrScorers||scorers),[mid]:rows};await publishChanges()};
   const om=$('#open-mgr');if(om)om.onclick=async()=>{state.mgr=!state.mgr;if(state.mgr&&state.canEdit==null)await checkAccess();render();if(state.mgr)setTimeout(()=>$('#mgr')?.scrollIntoView({behavior:'smooth'}),30)};
   $$('[data-mgr]').forEach(inp=>{inp.onchange=()=>{const [id,f]=inp.dataset.mgr.split(':');const m=matches.find(x=>x.id===id);const e=state.mgrEdits[id]||{};let v=inp.value;if(f==='hg'||f==='ag'){v=v===''?null:Math.max(0,Math.min(30,Math.round(+v)))}if(f==='kit'&&v==='')v=null;e[f]=v;if((f==='hg'||f==='ag')&&v!=null){const other=f==='hg'?'ag':'hg';if((e[other]??m[other])!=null)e.status='final'}if(f==='status'&&v==='postponed'){e.hg=null;e.ag=null}if(f==='status'&&v!=='final'&&v!=='postponed'&&((e.hg??m.hg)!=null)){e.hg=null;e.ag=null}
@@ -3195,7 +3277,8 @@ function wire(){
   if($('#share-canvas'))drawShareCard();
 }
 function renderKeepScroll(){const y=window.scrollY;render();window.scrollTo(0,y)}
-async function checkAccess(){try{if(!window.claude||!claude.use){state.canEdit=false;return}const u=await claude.use('user');state.user=u;state.canEdit=u?await u.canEdit():false;state.artifact=await claude.use('artifact')}catch(e){state.canEdit=false}}
+async function checkAccess(){if(window.__fbxOn&&window.goldFBReady){await window.goldFBReady;if(window.GoldFB&&GoldFB.isStaff){state.canEdit=true;return}if(!window.claude||!claude.use){state.canEdit=false;return}}return checkAccessClaude()}
+async function checkAccessClaude(){try{if(!window.claude||!claude.use){state.canEdit=false;return}const u=await claude.use('user');state.user=u;state.canEdit=u?await u.canEdit():false;state.artifact=await claude.use('artifact')}catch(e){state.canEdit=false}}
 
 /* ---------- Share card (canvas) ---------- */
 function drawShareCard(){const c=$('#share-canvas');const x=c.getContext('2d');const W=c.width,H=c.height;const tbl=standings(matches),g=tbl.find(r=>r.id===GOLD);const last=lastGoldFinal();
@@ -3235,9 +3318,303 @@ try{const f=sessionStorage.getItem('gold.flash');if(f){sessionStorage.removeItem
 checkAccess().then(()=>{if(state.tab==='more')render()});
 // one-time celebration when there is a fresh Gold win the viewer hasn't seen
 (function(){const last=lastGoldFinal();if(!last)return;const key='seen.'+last.id;if(store.get(key,false))return;store.set(key,true);const s=goldSide(last);if(s.gf>s.ga)setTimeout(()=>confetti(90),document.querySelector('.intro')?7500:600)})();
+window.GoldApp={state,toast,matches:()=>matches,meta:()=>META,kickedOff,render,go};
+window.addEventListener('fbx-change',()=>{if(window.GoldFB&&!GoldFB.isStaff&&state.canEdit===true&&window.__fbxOn&&!(window.claude&&claude.use))state.canEdit=false;if(window.GoldFB&&GoldFB.isStaff&&state.canEdit!==true)state.canEdit=true;const a=document.activeElement;if(a&&$('#main')&&$('#main').contains(a)&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))return;if(['more','predict','home'].includes(state.tab))renderKeepScroll()});
 window.addEventListener('hashchange',()=>{const t=location.hash.replace('#','');if(t.startsWith('event/')){if(state.eventId!==t.slice(6)||state.tab!=='event')openEvent(t.slice(6));return}if(VALID.includes(t)&&t!==state.tab)go(t)});
 })();
 
 </script>
+<script type="module" id="fbx-firebase">
+/* Firebase add-on (Oct 18 2026): sign-in + approval, shared predictions, live team chat, manager publishing.
+   Matches the Firestore rules published in the lafc-gold-matchday project. */
+import {initializeApp} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import {getAuth,onAuthStateChanged,GoogleAuthProvider,signInWithPopup,signInWithRedirect,getRedirectResult,signInWithEmailAndPassword,createUserWithEmailAndPassword,sendPasswordResetEmail,sendEmailVerification,signOut} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+import {initializeFirestore,persistentLocalCache,persistentMultipleTabManager,doc,getDoc,setDoc,updateDoc,deleteDoc,collection,query,orderBy,limit,onSnapshot,addDoc,serverTimestamp,writeBatch,getDocs,Timestamp} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+const fbxConfig={apiKey:"AIzaSyAeedJIn8RQlMg8OQYD2v8DRr83nkb6Ds0",authDomain:"lafc-gold-matchday.firebaseapp.com",projectId:"lafc-gold-matchday",storageBucket:"lafc-gold-matchday.firebasestorage.app",messagingSenderId:"499634290289",appId:"1:499634290289:web:4b41fcbccb4b39b6a3a5d0"};
+const FBX_OWNER='pablo1.solar@gmail.com';
+const STAFF_ROLES=['manager','coach','admin'];
+const fbxApp=initializeApp(fbxConfig);
+const auth=getAuth(fbxApp);
+let db;try{db=initializeFirestore(fbxApp,{localCache:persistentLocalCache({tabManager:persistentMultipleTabManager()})})}catch(e){db=initializeFirestore(fbxApp,{})}
+
+const G=window.GoldFB;
+const fx=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const app=()=>window.GoldApp;
+const toast=m=>{try{app().toast(m)}catch(e){}};
+let changeT;function changed(){clearTimeout(changeT);changeT=setTimeout(()=>window.dispatchEvent(new Event('fbx-change')),60)}
+let unsub={};function stop(k){if(unsub[k]){try{unsub[k]()}catch(e){}delete unsub[k]}}
+const myName=()=>(G.member&&G.member.name)||(G.user&&(G.user.displayName||(G.user.email||'').split('@')[0]))||'Team member';
+
+/* ---------- Auth state ---------- */
+let firstAuth=true;
+onAuthStateChanged(auth,async user=>{
+  ['member','preds','members','chat'].forEach(stop);
+  Object.assign(G,{user,uid:user?user.uid:null,member:null,isApproved:false,isStaff:false,isOwner:false,entries:[],members:[],chat:[]});
+  G.picksSynced=null;
+  if(!user){try{localStorage.removeItem('gold.fbData')}catch(e){}finish();return}
+  G.isOwner=(user.email||'').toLowerCase()===FBX_OWNER&&user.emailVerified;
+  const ref=doc(db,'members',user.uid);
+  try{
+    let snap=await getDoc(ref);
+    if(G.isOwner&&(!snap.exists()||snap.data().status!=='approved'||snap.data().role!=='admin')){
+      if(!snap.exists())await setDoc(ref,{name:user.displayName||'Pablo',email:user.email||'',role:'member',status:'pending',playerName:'',photoURL:user.photoURL||'',createdAt:serverTimestamp()});
+      await updateDoc(ref,{status:'approved',role:'admin'});
+    }
+  }catch(e){console.warn('fbx member',e)}
+  unsub.member=onSnapshot(ref,s=>{G.member=s.exists()?s.data():null;evaluate();},e=>{console.warn('fbx member listen',e);evaluate()});
+});
+function finish(){G.ready=true;if(firstAuth){firstAuth=false;window.__fbxReadyDone(true)}refreshSheet();changed()}
+let wasApproved=false,wasStaff=false;
+function evaluate(){
+  const m=G.member;
+  G.isApproved=G.isOwner||(!!m&&m.status==='approved');
+  G.isStaff=G.isOwner||(G.isApproved&&!!m&&STAFF_ROLES.includes(m.role));
+  if(G.isApproved&&!wasApproved){startApproved()}
+  if(!G.isApproved&&wasApproved){['preds','chat','members'].forEach(stop)}
+  if(G.isStaff&&!wasStaff){startStaff()}
+  if(!G.isStaff&&wasStaff)stop('members');
+  wasApproved=G.isApproved;wasStaff=G.isStaff;
+  finish();
+}
+onAuthStateChanged(auth,u=>{if(!u){wasApproved=false;wasStaff=false}});
+getRedirectResult(auth).catch(e=>console.warn('fbx redirect',e));
+
+function startApproved(){checkData();listenPreds();listenChat()}
+function startStaff(){listenMembers();syncGames(app()?app().matches():[]).catch(e=>console.warn('fbx games',e))}
+
+/* ---------- Manager-published data (team/data) ---------- */
+async function checkData(){
+  try{const s=await getDoc(doc(db,'team','data'));if(!s.exists())return;const d=s.data();
+    if(!d.json||!d.lastChecked||d.lastChecked<=(window.__fbxDataLastChecked||''))return;
+    JSON.parse(d.json);localStorage.setItem('gold.fbData',JSON.stringify({json:d.json,lastChecked:d.lastChecked}));
+    if(sessionStorage.getItem('gold.fbxReloaded')===d.lastChecked)return;
+    sessionStorage.setItem('gold.fbxReloaded',d.lastChecked);sessionStorage.setItem('gold.flash','Updated with the manager’s latest changes');location.reload();
+  }catch(e){console.warn('fbx data',e)}
+}
+G.publishData=async function(newData){
+  if(!G.isStaff)throw{code:'not_staff'};
+  const json=JSON.stringify(newData);
+  if(json.length>900000)throw{code:'too_big'};
+  const lastChecked=newData.meta.lastChecked;
+  await setDoc(doc(db,'team','data'),{json,lastChecked,updatedAt:serverTimestamp(),by:myName()});
+  try{await syncGames(newData.matches)}catch(e){console.warn('fbx games',e)}
+  try{localStorage.setItem('gold.fbData',JSON.stringify({json,lastChecked}));sessionStorage.setItem('gold.fbxReloaded',lastChecked)}catch(e){}
+};
+
+/* ---------- Games (kickoff times that lock predictions) ---------- */
+function ptToMs(date,time){
+  const [y,mo,d]=date.split('-').map(Number);let h=23,mi=59;
+  const mt=/^(\d{1,2}):(\d{2})\s*(AM|PM)?/i.exec(time||'');
+  if(mt){h=+mt[1];mi=+mt[2];if(mt[3]&&/pm/i.test(mt[3])&&h<12)h+=12;if(mt[3]&&/am/i.test(mt[3])&&h===12)h=0}
+  const want=Date.UTC(y,mo-1,d,h,mi);let guess=want+8*3600e3;
+  const f=new Intl.DateTimeFormat('en-US',{timeZone:'America/Los_Angeles',hourCycle:'h23',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+  for(let i=0;i<2;i++){const p=Object.fromEntries(f.formatToParts(new Date(guess)).map(x=>[x.type,x.value]));const asUtc=Date.UTC(+p.year,+p.month-1,+p.day,+p.hour%24,+p.minute);guess+=want-asUtc}
+  return guess;
+}
+let gamesSynced=false;
+async function syncGames(ms){
+  if(!G.isStaff||!ms||!ms.length)return;
+  const have={};(await getDocs(collection(db,'games'))).forEach(s=>have[s.id]=s.data());
+  let batch=writeBatch(db),n=0,total=0;
+  for(const m of ms){
+    const ko=ptToMs(m.date,m.time);const cur=have[String(m.id)];
+    if(cur&&cur.kickoff&&cur.kickoff.toMillis()===ko&&cur.date===m.date&&(cur.time||'')===(m.time||''))continue;
+    batch.set(doc(db,'games',String(m.id)),{gameId:String(m.id),home:m.home,away:m.away,date:m.date,time:m.time||'',kickoff:Timestamp.fromMillis(ko)});
+    n++;total++;if(n>=400){await batch.commit();batch=writeBatch(db);n=0}
+  }
+  if(n)await batch.commit();
+  gamesSynced=true;if(total)console.info('fbx games synced',total);
+  if(G.picksSynced)G.picksChanged(app().state.picks);
+}
+
+/* ---------- Shared predictions ---------- */
+function listenPreds(){
+  stop('preds');
+  unsub.preds=onSnapshot(collection(db,'predictions'),snap=>{
+    const by={};const mine={};
+    snap.forEach(s=>{const d=s.data();if(!d||!d.uid||!d.gameId)return;
+      if(d.uid===G.uid&&d.h!=null)mine[d.gameId]=[d.h,d.a];
+      if(d.h==null||d.a==null)return;
+      const e=by[d.uid]||(by[d.uid]={uid:d.uid,name:d.name||'Team member',picks:{},t:0});
+      e.picks[d.gameId]=[d.h,d.a];const t=d.updatedAt&&d.updatedAt.toMillis?d.updatedAt.toMillis():0;if(t>=e.t){e.t=t;if(d.name)e.name=d.name}});
+    G.entries=Object.values(by);
+    const A=app();if(A)A.state.picksAll=G.entries;
+    if(!G.picksSynced&&A){
+      // first load: the team board wins for games already saved there; local-only picks get pushed up
+      const local=A.state.picks||{};const merged={...local,...mine};
+      G.picksSynced={};for(const [id,v] of Object.entries(mine))G.picksSynced[id]=v[0]+'-'+v[1];
+      A.state.picks=merged;try{localStorage.setItem('gold.picks',JSON.stringify(merged))}catch(e){}
+      G.picksChanged(merged);
+    }
+    changed();
+  },e=>console.warn('fbx preds',e));
+}
+let pickBusy=Promise.resolve();
+G.picksChanged=function(picks){
+  if(!G.isApproved||!G.picksSynced||!G.uid)return;
+  const A=app();const want={};for(const [id,v] of Object.entries(picks||{}))if(Array.isArray(v))want[id]=v[0]+'-'+v[1];
+  const ids=new Set([...Object.keys(want),...Object.keys(G.picksSynced)]);
+  const jobs=[];
+  for(const id of ids){
+    if(want[id]===G.picksSynced[id])continue;
+    const m=A&&A.matches().find(x=>x.id===id);if(!m||A.kickedOff(m))continue;
+    const v=want[id]?want[id].split('-').map(Number):null;
+    jobs.push({id,v});
+  }
+  if(!jobs.length)return;
+  pickBusy=pickBusy.then(async()=>{let fail=0;
+    for(const {id,v} of jobs){
+      try{await setDoc(doc(db,'predictions',id+'_'+G.uid),{uid:G.uid,gameId:id,h:v?v[0]:null,a:v?v[1]:null,name:myName(),updatedAt:serverTimestamp()});G.picksSynced[id]=v?v[0]+'-'+v[1]:undefined;if(!v)delete G.picksSynced[id]}
+      catch(e){fail++;console.warn('fbx pick',id,e.code||e)}
+    }
+    if(fail&&!gamesSynced)console.info('fbx: some picks wait until a manager signs in once (game times not on the board yet)');
+  });
+};
+
+/* ---------- Members & approvals (staff) ---------- */
+function listenMembers(){
+  stop('members');
+  unsub.members=onSnapshot(collection(db,'members'),snap=>{const list=[];snap.forEach(s=>list.push({uid:s.id,...s.data()}));
+    const order={pending:0,approved:1,declined:2};list.sort((a,b)=>(order[a.status]??3)-(order[b.status]??3)||String(a.name||'').localeCompare(String(b.name||'')));
+    G.members=list;changed()},e=>console.warn('fbx members',e));
+}
+G.membersCardHTML=function(){
+  if(!G.isStaff)return '';
+  const list=G.members||[];const pend=list.filter(m=>m.status==='pending');
+  const row=m=>{const role=m.role||'member';
+    const roleCtl=G.isOwner&&m.uid!==G.uid?`<select data-fbx-role="${fx(m.uid)}" aria-label="Role">${['member','manager','coach','admin'].map(r=>`<option value="${r}" ${r===role?'selected':''}>${r}</option>`).join('')}</select>`:(role!=='member'?`<span class="fbx-pill">${fx(role)}</span>`:'');
+    const act=m.status==='pending'?`<button class="btn gold sm" data-fbx-approve="${fx(m.uid)}">Approve</button><button class="btn ghost sm" data-fbx-decline="${fx(m.uid)}">Decline</button>`:m.status==='declined'?`<span class="fbx-pill">declined</span><button class="btn quiet sm" data-fbx-approve="${fx(m.uid)}">Approve</button>`:roleCtl;
+    return `<div class="fbx-mem"><div class="fbx-av">${m.photoURL?`<img src="${fx(m.photoURL)}" alt="" referrerpolicy="no-referrer">`:fx((m.name||'?').charAt(0).toUpperCase())}</div><div class="who"><b>${fx(m.name||'(no name)')}${m.status==='pending'?' <span class="fbx-pill pending">waiting</span>':''}</b><small>${m.playerName?'Player: '+fx(m.playerName)+' · ':''}${fx(m.email||'')}</small></div>${act}</div>`};
+  return `<section class="card"><div class="card-h"><h3>Team members</h3><small>${pend.length?`<b style="color:var(--gold-2)">${pend.length} waiting</b> · `:''}${list.filter(m=>m.status==='approved').length} approved</small></div>
+    ${list.length?`<div>${list.map(row).join('')}</div>`:'<div class="empty">No one has asked to join yet. Share the link — people sign in and show up here for approval.</div>'}
+    <p class="small muted" style="margin:10px 0 0">Approved people can use the team chat, the shared predictions board and the calendar. ${G.isOwner?'Make managers or the coach “manager”/“coach” so they can approve people and use manager mode.':'Only Pablo can change roles.'}</p></section>`;
+};
+
+/* ---------- Account card + sign-in sheet ---------- */
+const GOOGLE_SVG='<svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>';
+function statusLine(){
+  if(!G.ready)return '<p class="small muted" style="margin:0">Connecting…</p>';
+  if(!G.user)return `<p class="small fg2" style="margin:0 0 10px">Sign in to use the team chat, put your picks on the shared board, and (for managers) update the app.</p><button class="btn gold wide" data-fbx="account">Sign in or join</button>`;
+  const m=G.member;const nm=myName();
+  const av=`<div class="fbx-av">${G.user.photoURL?`<img src="${fx(G.user.photoURL)}" alt="" referrerpolicy="no-referrer">`:fx(nm.charAt(0).toUpperCase())}</div>`;
+  const role=G.isOwner?'owner':(m&&m.role&&m.role!=='member'?m.role:'');
+  let st='';
+  if(G.isApproved)st=`<p class="small fg2" style="margin:10px 0 0">You’re in ✓ Team chat and the shared board are on.</p>`;
+  else if(!m)st=`<p class="small fg2" style="margin:10px 0 8px">One more step — tell us who you are so a manager can approve you.</p><button class="btn gold wide" data-fbx="account">Finish joining</button>`;
+  else if(m.status==='declined')st=`<p class="small fg2" style="margin:10px 0 0">Your request wasn’t approved. Ask a team manager if that’s a mistake.</p>`;
+  else st=`<p class="small fg2" style="margin:10px 0 0">Waiting for Pablo or a team manager to approve you. This page updates by itself.</p>`;
+  return `<div class="fbx-me">${av}<div style="min-width:0"><b>${fx(nm)}</b>${role?`<span class="fbx-role">${fx(role)}</span>`:''}<div class="small muted" style="overflow:hidden;text-overflow:ellipsis">${fx(G.user.email||'')}</div></div></div>${st}<div style="margin-top:10px"><button class="btn ghost sm" data-fbx="signout">Sign out</button></div>`;
+}
+G.accountCardHTML=function(){return `<section class="card" style="align-self:start"><div class="card-h"><h3>Your account</h3><small>team sign-in</small></div>${statusLine()}</section>`};
+
+let sheet=null,sheetMode='signin',sheetErr='';
+G.openAccount=function(mode){sheetMode=mode||'signin';sheetErr='';if(!sheet){sheet=document.createElement('div');sheet.className='fbx-overlay';sheet.addEventListener('click',e=>{if(e.target===sheet)closeSheet()});document.body.appendChild(sheet)}refreshSheet(true)};
+function closeSheet(){if(sheet){sheet.remove();sheet=null}}
+function refreshSheet(force){
+  if(!sheet)return;
+  const keep={};sheet.querySelectorAll('input').forEach(i=>keep[i.id]=i.value);
+  let body='';const title=!G.user?(sheetMode==='create'?'Create an account':'Sign in'):(!G.member&&!G.isOwner?'Join the team':'Your account');
+  if(!G.ready)body='<p class="small muted">Connecting…</p>';
+  else if(!G.user){
+    body=`<p class="small fg2">Team chat, the shared predictions board and manager tools are for approved team families.</p>
+      <button class="btn fbx-google" data-fbx="google">${GOOGLE_SVG} Continue with Google</button>
+      <div class="fbx-or">or with email</div>
+      <label class="fbx-field">Email<input id="fbx-email" type="email" autocomplete="email" inputmode="email"></label>
+      <label class="fbx-field">Password<input id="fbx-pass" type="password" autocomplete="${sheetMode==='create'?'new-password':'current-password'}" minlength="6"></label>
+      <div class="fbx-row">${sheetMode==='create'?`<button class="btn gold" data-fbx="create">Create account</button>`:`<button class="btn gold" data-fbx="email">Sign in</button>`}</div>
+      <p class="small muted" style="margin:10px 0 0">${sheetMode==='create'?`Already have one? <button class="fbx-link" data-fbx="mode-signin">Sign in</button>`:`New here? <button class="fbx-link" data-fbx="mode-create">Create an account</button> · <button class="fbx-link" data-fbx="reset">Forgot password?</button>`}</p>`;
+  }else if(!G.member&&!G.isOwner){
+    body=`<p class="small fg2">Tell us who you are. Pablo or a team manager will approve you, usually the same day.</p>
+      <label class="fbx-field">Your name<input id="fbx-name" type="text" maxlength="40" placeholder="e.g. Sofia’s mom, Coach Mike" value="${fx(G.user.displayName||'')}"></label>
+      <label class="fbx-field">Your player’s name (optional)<input id="fbx-player" type="text" maxlength="40" placeholder="e.g. Mateo"></label>
+      <div class="fbx-row"><button class="btn gold" data-fbx="join">Ask to join</button></div>
+      <p class="small muted" style="margin:10px 0 0">Signed in as ${fx(G.user.email||'')} · <button class="fbx-link" data-fbx="signout">Sign out</button></p>`;
+  }else body=statusLine();
+  sheet.innerHTML=`<div class="fbx-sheet" role="dialog" aria-modal="true" aria-label="${fx(title)}"><div class="fbx-sheet-h"><h3>${fx(title)}</h3><button class="fbx-x" data-fbx="close" aria-label="Close">×</button></div>${body}<p class="fbx-err" role="alert">${fx(sheetErr)}</p></div>`;
+  sheet.querySelectorAll('input').forEach(i=>{if(keep[i.id]!=null&&keep[i.id]!=='')i.value=keep[i.id]});
+}
+function authMsg(e){const c=(e&&e.code)||'';return ({'auth/invalid-credential':'Wrong email or password.','auth/wrong-password':'Wrong email or password.','auth/user-not-found':'No account with that email — tap “Create an account”.','auth/email-already-in-use':'That email already has an account — sign in instead.','auth/weak-password':'Use at least 6 characters for the password.','auth/invalid-email':'That email doesn’t look right.','auth/popup-closed-by-user':'Sign-in window closed.','auth/unauthorized-domain':'This website isn’t allowed to sign in yet — tell Pablo (Firebase → Authentication → Settings → Authorized domains).','auth/too-many-requests':'Too many tries — wait a minute and try again.','auth/network-request-failed':'No connection — check your internet.'})[c]||('Something went wrong'+(c?' ('+c+')':'')+'.')}
+function setErr(m){sheetErr=m;const p=sheet&&sheet.querySelector('.fbx-err');if(p)p.textContent=m}
+const val=id=>{const i=document.getElementById(id);return i?i.value.trim():''};
+
+document.addEventListener('click',async e=>{
+  const t=e.target.closest('[data-fbx],[data-fbx-approve],[data-fbx-decline],[data-fbx-del],[data-fbx-send]');if(!t)return;
+  const a=t.dataset.fbx;
+  try{
+    if(t.dataset.fbxApprove){await updateDoc(doc(db,'members',t.dataset.fbxApprove),{status:'approved'});toast('Approved ✓');return}
+    if(t.dataset.fbxDecline){await updateDoc(doc(db,'members',t.dataset.fbxDecline),{status:'declined'});toast('Declined');return}
+    if(t.dataset.fbxDel){if(!confirm('Delete this message?'))return;await deleteDoc(doc(db,'messages',t.dataset.fbxDel));return}
+    if(t.dataset.fbxSend!=null){sendMsg();return}
+    if(a==='account'){G.openAccount();return}
+    if(a==='close'){closeSheet();return}
+    if(a==='chat-close'){closeChat();return}
+    if(a==='mode-create'||a==='mode-signin'){sheetMode=a.slice(5);sheetErr='';refreshSheet();return}
+    if(a==='signout'){await signOut(auth);closeChat();toast('Signed out');return}
+    if(a==='google'){setErr('');const p=new GoogleAuthProvider();p.setCustomParameters({prompt:'select_account'});
+      try{await signInWithPopup(auth,p)}catch(err){if(['auth/popup-blocked','auth/operation-not-supported-in-this-environment','auth/cancelled-popup-request'].includes(err.code)){await signInWithRedirect(auth,p);return}throw err}
+      afterSignIn();return}
+    if(a==='email'){setErr('');await signInWithEmailAndPassword(auth,val('fbx-email'),document.getElementById('fbx-pass').value);afterSignIn();return}
+    if(a==='create'){setErr('');const c=await createUserWithEmailAndPassword(auth,val('fbx-email'),document.getElementById('fbx-pass').value);try{await sendEmailVerification(c.user)}catch(_){}afterSignIn();return}
+    if(a==='reset'){const em=val('fbx-email');if(!em){setErr('Type your email above first, then tap “Forgot password?”.');return}await sendPasswordResetEmail(auth,em);setErr('');toast('Password reset email sent');return}
+    if(a==='join'){const name=val('fbx-name');if(!name){setErr('Please type your name.');return}
+      await setDoc(doc(db,'members',G.uid),{name:name.slice(0,40),email:G.user.email||'',role:'member',status:'pending',playerName:val('fbx-player').slice(0,40),photoURL:G.user.photoURL||'',createdAt:serverTimestamp()});
+      toast('Request sent — you’ll be approved soon');refreshSheet();return}
+  }catch(err){console.warn('fbx',err);if(sheet)setErr(authMsg(err));else toast(authMsg(err))}
+});
+document.addEventListener('change',async e=>{const s=e.target.closest('[data-fbx-role]');if(!s)return;try{await updateDoc(doc(db,'members',s.dataset.fbxRole),{role:s.value});toast('Role updated')}catch(err){toast('Couldn’t change the role')}});
+function afterSignIn(){setTimeout(()=>{if(G.member||G.isOwner){closeSheet()}else refreshSheet()},400)}
+
+/* ---------- Team chat ---------- */
+let chatEl=null;
+const seenKey='gold.fbxChatSeen';
+function listenChat(){
+  stop('chat');
+  unsub.chat=onSnapshot(query(collection(db,'messages'),orderBy('createdAt','desc'),limit(100)),snap=>{
+    const list=[];snap.forEach(s=>{const d=s.data({serverTimestamps:'estimate'});list.push({id:s.id,...d,ms:d.createdAt&&d.createdAt.toMillis?d.createdAt.toMillis():Date.now()})});
+    G.chat=list.reverse();renderChat();updateDot();
+  },e=>console.warn('fbx chat',e));
+}
+function updateDot(){
+  const btn=document.querySelector('#chat-fab .chat-fab-btn');if(!btn)return;
+  let seen=0;try{seen=+localStorage.getItem(seenKey)||0}catch(e){}
+  const unread=!chatEl&&(G.chat||[]).some(m=>m.uid!==G.uid&&m.ms>seen);
+  let d=btn.querySelector('.fbx-dot');if(unread&&!d){d=document.createElement('i');d.className='fbx-dot';btn.appendChild(d)}if(!unread&&d)d.remove();
+}
+window.addEventListener('fbx-change',()=>setTimeout(updateDot,80));
+G.openChat=function(){
+  if(!G.ready){toast('Connecting…');return}
+  if(!G.isApproved){G.openAccount();return}
+  if(chatEl)return;
+  chatEl=document.createElement('div');chatEl.className='fbx-chat';chatEl.setAttribute('role','dialog');chatEl.setAttribute('aria-label','Team chat');
+  const link=((app()&&app().meta().chatLink)||'').trim();
+  chatEl.innerHTML=`<div class="fbx-chat-h"><h3>Team chat</h3><small>approved families</small><button class="fbx-x" data-fbx="chat-close" aria-label="Close chat">×</button></div><div class="fbx-msgs" id="fbx-msgs"></div>${link?`<div class="fbx-chat-foot">Also on <a href="${fx(link)}" target="_blank" rel="noreferrer">the group chat ↗</a></div>`:''}<div class="fbx-compose"><textarea id="fbx-text" rows="1" maxlength="2000" placeholder="Message the team…" aria-label="Message"></textarea><button class="btn gold" data-fbx-send>Send</button></div>`;
+  document.body.appendChild(chatEl);
+  const ta=chatEl.querySelector('#fbx-text');
+  ta.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&!/Mobi/i.test(navigator.userAgent)){e.preventDefault();sendMsg()}});
+  ta.addEventListener('input',()=>{ta.style.height='auto';ta.style.height=Math.min(120,ta.scrollHeight)+'px'});
+  renderChat(true);updateDot();
+};
+function closeChat(){if(chatEl){chatEl.remove();chatEl=null;try{localStorage.setItem(seenKey,String(Date.now()))}catch(e){}updateDot()}}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(sheet)closeSheet();else if(chatEl)closeChat()}});
+function renderChat(jump){
+  if(!chatEl)return;const box=chatEl.querySelector('#fbx-msgs');const atBottom=jump||box.scrollHeight-box.scrollTop-box.clientHeight<80;
+  const list=G.chat||[];let lastDay='';
+  box.innerHTML=list.length?list.map(m=>{const dt=new Date(m.ms);const day=dt.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});const sep=day!==lastDay?`<div class="fbx-day">${fx(day)}</div>`:'';lastDay=day;const mine=m.uid===G.uid;const canDel=mine||G.isStaff;
+    return `${sep}<div class="fbx-msg ${mine?'mine':''}"><div class="meta"><b>${fx(mine?'You':(m.name||'Team member'))}</b><span>${dt.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}</span>${canDel?`<button class="fbx-del" data-fbx-del="${fx(m.id)}" aria-label="Delete message">×</button>`:''}</div><div class="txt">${fx(m.text||'')}</div></div>`}).join(''):'<div class="fbx-empty">No messages yet.<br>Say hi to the team 👋</div>';
+  if(atBottom)box.scrollTop=box.scrollHeight;
+  try{localStorage.setItem(seenKey,String(Date.now()))}catch(e){}
+}
+async function sendMsg(){
+  const ta=chatEl&&chatEl.querySelector('#fbx-text');if(!ta)return;const text=ta.value.trim();if(!text)return;
+  ta.value='';ta.style.height='auto';
+  try{await addDoc(collection(db,'messages'),{uid:G.uid,name:myName(),text:text.slice(0,2000),createdAt:serverTimestamp()})}
+  catch(e){ta.value=text;toast('Message didn’t send — try again')}
+}
+
+delete G.stub;
+changed();
+</script>
+
 
 </body></html>
