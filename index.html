@@ -3615,6 +3615,42 @@ async function sendMsg(){
 delete G.stub;
 changed();
 </script>
+<style id="fbx3-style">
+/* Score rows (Oct 18 2026): a row gets .fbx3-tight only when a team name is measured to run into the score or the
+   crest by more than a few px (narrow Android screens, enlarged text); .fbx3-tight2 if it still collides after that.
+   Rows that fit are left exactly as they were. */
+.row.fbx3-tight{grid-template-columns:48px minmax(0,1fr) auto minmax(0,1fr);gap:6px}
+.row.fbx3-tight .team span{font-size:12px;hyphens:auto;-webkit-hyphens:auto}
+.row.fbx3-tight .score{font-size:24px;min-width:52px;letter-spacing:.02em}
+.row.fbx3-tight .team .crest{flex:none}
+.row.fbx3-tight2{grid-template-columns:48px minmax(0,1fr) auto;grid-template-areas:"when home score" "when away score";row-gap:4px}
+.row.fbx3-tight2 .when{grid-area:when}.row.fbx3-tight2 .team:not(.r){grid-area:home}.row.fbx3-tight2 .team.r{grid-area:away;flex-direction:row;text-align:left}.row.fbx3-tight2 .score{grid-area:score}
+.row.fbx3-tight2>:not(.when):not(.team):not(.score){grid-area:auto;grid-column:1/-1}
+.row.fbx3-tight2 .team span{font-size:13px;overflow-wrap:break-word}
+</style>
+<script id="fbx3-rows">
+(function(){
+  const SLACK=6; // px of overlap tolerated before a row is adjusted
+  function collides(row){
+    const score=row.querySelector('.score');if(!score)return false;let sr=score.getBoundingClientRect();try{const rg=document.createRange();rg.selectNodeContents(score);const g=rg.getBoundingClientRect();if(g.width)sr=g}catch(e){}let hit=false;
+    row.querySelectorAll('.team').forEach(t=>{const sp=[...t.children].find(e=>e.tagName==='SPAN'&&!e.classList.contains('crest'));if(!sp)return;
+      const r=sp.getBoundingClientRect();if(!r.width)return;const textRight=r.left+sp.scrollWidth;
+      if(t.classList.contains('r')){const c=t.querySelector('.crest');if(c&&textRight>c.getBoundingClientRect().left+SLACK)hit=true}
+      else if(textRight>sr.left+SLACK)hit=true});
+    return hit;
+  }
+  function check(){
+    const rows=[...document.querySelectorAll('#main .row')].filter(r=>!r.classList.contains('fbx3-tight'));
+    const first=rows.filter(collides);first.forEach(r=>r.classList.add('fbx3-tight'));
+    if(first.length)first.filter(collides).forEach(r=>r.classList.add('fbx3-tight2'));
+  }
+  const main=document.getElementById('main');if(!main)return;
+  new MutationObserver(()=>check()).observe(main,{childList:true});
+  let t;window.addEventListener('resize',()=>{clearTimeout(t);t=setTimeout(()=>{main.querySelectorAll('.row.fbx3-tight').forEach(r=>r.classList.remove('fbx3-tight','fbx3-tight2'));check()},150)});
+  if(document.fonts&&document.fonts.ready)document.fonts.ready.then(check);
+  check();
+})();
+</script>
 <style id="fbx2-style">
 /* Families add-on (Oct 18 2026): availability + family contacts. All names prefixed fbx2- so nothing existing is touched. */
 .fbx2-fam{display:flex;flex-direction:column}
