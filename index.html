@@ -2822,6 +2822,7 @@ function table(){
     <div class="tbl-wrap"><table class="tbl standings"><thead><tr><th>#</th><th>Club</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>PPG</th><th>Pts</th><th title="Results so far, oldest to newest">Form</th></tr></thead><tbody>
     ${view.map(r=>`<tr class="${r.id===GOLD?'ours':''}"><td><span class="rank ${r.rank<=3?'top':''}">${r.rank}</span></td><td>${teamLockup(r.id)}</td><td class="num">${r.gp}</td><td class="num">${r.w}</td><td class="num">${r.d}</td><td class="num">${r.l}</td><td class="num">${r.gf}</td><td class="num">${r.ga}</td><td class="num">${signed(r.gd)}</td><td class="num">${r.ppg.toFixed(2)}</td><td class="num"><b>${r.pts}</b></td><td>${formDots(r.form,6,false)}</td></tr>`).join('')}
     </tbody></table></div><p class="small muted" style="margin:10px 0 0">Official position is by points per game (teams have played different numbers of games). Tap a club to scout it.</p></section>
+    <section class="card fbx4-rank"><div class="card-h"><h3>National ranking</h3><small>GotSport</small></div><p class="small fg2" style="margin:0 0 12px">See where Gold stands among every U13 boys team in the country — national, regional and Cal South.</p><a class="btn gold" href="https://rankings.gotsport.com/teams/780594" target="_blank" rel="noreferrer">See Gold on GotSport ↗</a><p class="fbx4-soon"><span class="fbx4-dot"></span>Live ranking right here in the app — coming soon.</p></section>
     <div class="grid-2">
       <section class="card"><div class="card-h"><h3>Gold’s climb</h3><small>position after each matchday</small></div>${rankChart(hist)}</section>
       <section class="card"><div class="card-h"><h3>Attack & defense</h3><small>league top 10 by goals scored</small></div>${goalsChart(rows.slice().sort((a,b)=>b.gf-a.gf||b.gd-a.gd).slice(0,10))}<div class="legend"><span><i style="background:var(--gold)"></i>Goals scored</span><span><i style="background:var(--line-2)"></i>Goals conceded</span></div></section>
@@ -3615,6 +3616,12 @@ async function sendMsg(){
 delete G.stub;
 changed();
 </script>
+<style id="fbx4-style">
+/* GotSport link card on the Table tab (Oct 18 2026). fbx4- names only. */
+.fbx4-rank a.btn{text-decoration:none}
+.fbx4-soon{display:flex;align-items:center;gap:8px;margin:12px 0 0;font-size:12.5px;color:var(--muted)}
+.fbx4-dot{width:8px;height:8px;border-radius:50%;background:var(--gold);box-shadow:0 0 8px var(--gold);animation:pulse 2s infinite;flex:none}
+</style>
 <style id="fbx3-style">
 /* Score rows (Oct 18 2026): a row gets .fbx3-tight only when a team name is measured to run into the score or the
    crest by more than a few px (narrow Android screens, enlarged text); .fbx3-tight2 if it still collides after that.
