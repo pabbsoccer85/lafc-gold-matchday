@@ -2805,7 +2805,7 @@ function fbx12CodeBox(){if(!fbx12On())return '';const k='code';const sc=state.mg
     <label class="w">Someone texted you a code?<input type="text" id="mgr-code" placeholder="GOLD1G.…"></label><button class="btn ghost sm" id="mgr-add-code">Add code</button></div></details>`}
 function fbx12MomentsEd(){if(!fbx12On())return '';const mo=state.mgrMoments||META.moments||[];if(!mo.length)return '';
   return `<div class="fbx12-ed open-static"><div class="eyebrow" style="margin:0 0 6px">✎ Moments</div><div class="list-tight">${mo.map((x,i)=>`<div class="kv"><span style="display:flex;align-items:center;gap:8px;min-width:0">${x.src?`<img src="${esc(x.src)}" alt="" style="width:36px;height:36px;object-fit:cover;border-radius:6px">`:'🎬'}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(x.caption||'(no caption)')}</span></span><button class="btn quiet sm" data-mgr-mom-del="${i}">remove</button></div>`).join('')}</div></div>`}
-function fbx12Header(){const slot=document.getElementById('fbx12-slot');if(!slot)return;const html=state.canEdit===true?`<button class="fbx12-sw ${state.admin?'on':''}" id="fbx12-sw" type="button" aria-pressed="${!!state.admin}" title="Admin mode: edit the app right here"><span class="fbx12-knob"></span><span class="fbx12-lbl">Admin</span></button>`:'';if(slot.innerHTML!==html)slot.innerHTML=html;document.body.classList.toggle('fbx12-admin',fbx12On());
+function fbx12Header(){const slot=document.getElementById('fbx12-slot');if(!slot)return;const html=state.canEdit===true?`<button class="fbx12-sw ${state.admin?'on':''}" id="fbx12-sw" type="button" aria-pressed="${!!state.admin}" title="Admin mode: edit the app right here"><span class="fbx12-knob"></span><span class="fbx12-lbl">Admin</span></button>`:'';if(slot.innerHTML!==html)slot.innerHTML=html;document.body.classList.toggle('fbx12-admin',fbx12On());document.body.classList.toggle('fbx12-staff',state.canEdit===true);
   const sw=document.getElementById('fbx12-sw');if(sw)sw.onclick=()=>{state.admin=!state.admin;store.set('admin',state.admin);const n=fbx12Changed();renderKeepScroll();toast(state.admin?'Admin mode on — tap ✎ to edit':n?`Admin mode off — your ${n} unpublished ${n>1?'changes are':'change is'} kept`:'Admin mode off')}}
 function fbx12Wire(){
   $$('[data-fbx12-g]').forEach(inp=>{inp.onchange=()=>{const [id,f]=inp.dataset.fbx12G.split(':');const base=matches.find(x=>x.id===id);if(!base)return;const e={...(state.mgrEdits[id]||{})};let v=inp.value.trim();if(v==='')v=null;e[f]=v;if(JSON.stringify(v)===JSON.stringify(base[f]??null))delete e[f];if(Object.keys(e).every(k=>JSON.stringify(e[k])===JSON.stringify(base[k]??null)))delete state.mgrEdits[id];else state.mgrEdits[id]=e;renderKeepScroll()}});
@@ -2822,7 +2822,7 @@ function shell(){
     <div class="brand" id="brand">${crest(GOLD,'md')}<div><b class="brand-long">${esc((META.teamName||'LAFC Gold').toUpperCase())}</b><small>Matchday · ECNL RL Southern Cal · ${esc(META.season)}</small></div></div>
     <nav class="topnav" role="tablist">${TABS.map(([id,l])=>`<button role="tab" data-tab="${id}" aria-selected="${state.tab===id}">${l}</button>`).join('')}</nav>
     <div class="fbx12-ctl"><button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch to ${currentTheme()==='light'?'black':'white'} & gold" title="Black & gold / White & gold"><span class="tt-knob"></span><span class="tt-ico">${currentTheme()==='light'?'☀️':'🌙'}</span></button><span id="fbx12-slot"></span></div>
-    <div class="live-pill" title="Last official check"><i></i><span>Scores as of <b>${esc(META.snapshotLabel)}</b></span></div>
+    <div class="live-pill" title="Scores as of ${esc(META.snapshotLabel)}"><i></i><span><span class="fbx15-pre">Scores as of </span><b>${esc(META.snapshotLabel)}</b></span></div>
   </div></header>
   <main class="main" id="main"></main>
   <nav class="tabbar" role="tablist">${TABS.map(([id,l])=>`<button role="tab" data-tab="${id}" aria-selected="${state.tab===id}">${ICONS[id]}<span>${l}</span></button>`).join('')}</nav>
@@ -3741,6 +3741,30 @@ checkData();
 delete G.stub;
 changed();
 </script>
+<style id="fbx15-style">
+/* Oct 18 2026: date and time boxes size like every other box (iPhone Safari draws them wider and taller, overlapping the next box). fbx15- block. */
+input[type=date],input[type=time]{-webkit-appearance:none;appearance:none;display:block;min-width:0;max-width:100%;height:40px;line-height:20px;text-align:left}
+input[type=date]::-webkit-date-and-time-value,input[type=time]::-webkit-date-and-time-value{text-align:left;margin:0;min-height:20px}
+input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit{padding:0}
+.fbx12-f label>input,.fbx12-f label>select{flex:0 0 auto}
+.fbx12-f label>input:not([type=checkbox]):not([type=radio]):not([type=file]),.fbx12-f label>select{height:40px;box-sizing:border-box}
+/* no overlaps: Predict projected finish (name, big rank and points each on their own line) and the event page ball icon */
+:root[data-theme="light"] .evc-date small{font-size:9.5px}
+.finish span{display:block}
+.finish strong{display:block;line-height:1;margin:8px 0 4px}
+/* header: the team name block can shrink, so its small subtitle never runs under the light/dark or Admin switch */
+.brand>div{min-width:0}
+.evp2-icon{margin:4px 0 12px}
+/* header on small laptops / tablets: the menu never runs over the team name */
+@media (min-width:900px) and (max-width:1179px){
+  .topbar .live-pill{display:none}
+  .view .fbx14-asof{display:flex}
+  .topbar .fbx12-ctl{flex-direction:column;align-items:flex-end;gap:4px}
+  .topbar .fbx12-sw{height:20px;font-size:9.5px;padding:0 8px 0 3px}
+  .topbar .fbx12-knob{width:14px;height:14px}
+}
+@media (min-width:1180px){body.fbx12-staff .fbx15-pre{display:none}}
+</style>
 <style id="fbx12-style">
 /* Admin mode (Oct 18 2026). fbx12- names only. */
 .fbx12-ctl{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
