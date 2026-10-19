@@ -3020,6 +3020,20 @@ function pname(p){const f=String(p.first||'').trim().replace(/\s+/g,' ');const f
 function totals(sc=scorers){const t={};for(const rows of Object.values(sc))for(const r of rows){const x=t[r.num]=t[r.num]||{g:0,a:0};x.g+=r.g||0;x.a+=r.a||0}return t}
 function withTotals(rs=roster,sc=scorers){const t=totals(sc);return rs.map(p=>({...p,g:t[p.num]?.g||0,a:t[p.num]?.a||0}))}
 function scorerLine(mid,sc=scorers){const rows=(sc[mid]||[]).filter(r=>r.g>0||r.a>0).slice().sort((x,y)=>y.g-x.g||y.a-x.a||x.num-y.num);if(!rows.length&&!(sc[mid]||[]).some(r=>r.k&&r.sv>0))return '';const full=!!META.fullNames;const byNum=Object.fromEntries(roster.map(p=>[p.num,p]));const g=rows.filter(r=>r.g>0).map(r=>`${byNum[r.num]?pname(byNum[r.num],full):'#'+r.num}${r.g>1?' ×'+r.g:''}`);const as=rows.filter(r=>r.a>0).map(r=>`${byNum[r.num]?pname(byNum[r.num],full):'#'+r.num}${r.a>1?' ×'+r.a:''}`);const fbx8gk=(sc[mid]||[]).filter(r=>r.k&&r.sv>0).map(r=>`${byNum[r.num]?pname(byNum[r.num],full):'#'+r.num} ${r.sv} ${r.sv===1?'save':'saves'}`);return `<div class="row-note scorers">${g.length?`<span>⚽ ${g.join(', ')}</span>`:''}${as.length?`<span class="muted">🅰 ${as.join(', ')}</span>`:''}${fbx8gk.length?`<span class="muted">🧤 ${fbx8gk.join(', ')}</span>`:''}</div>`}
+/* fbx9 (Oct 18 2026): top-scorers podium above the trading cards — 1st in the middle, 2nd left, 3rd right; 4th and below fade left to right. Ties share a place. */
+function fbx9Ord(n){const s=['th','st','nd','rd'],v=n%100;return n+(s[(v-20)%10]||s[v]||s[0])}
+function fbx9Podium(rs,full){const sc=rs.filter(p=>p.g>0).slice().sort((a,b)=>b.g-a.g||b.a-a.a||a.num-b.num);if(!sc.length)return '';
+  let rank=0,prev=null;sc.forEach((p,i)=>{if(p.g!==prev){rank=i+1;prev=p.g}p.__r=rank});
+  const tied=r=>sc.filter(p=>p.__r===r).length>1;
+  const top=sc.slice(0,3),rest=sc.slice(3);const first=!window.__fbx9Seen;window.__fbx9Seen=true;
+  const col=(p,slot)=>{if(!p)return `<div class="fbx9-col fbx9-empty"></div>`;const r=Math.min(p.__r,4);return `<div class="fbx9-col fbx9-s${slot} fbx9-r${r}">
+      <div class="fbx9-who"><span class="fbx9-num display">${Number(p.num)}</span><span class="fbx9-name">${pname(p,full)}</span><span class="fbx9-g"><b class="num">${p.g}</b> ${p.g===1?'goal':'goals'}</span></div>
+      <div class="fbx9-step"><span class="fbx9-place display">${fbx9Ord(p.__r)}</span>${tied(p.__r)?'<small>tied</small>':''}</div></div>`};
+  return `<div class="fbx9 ${first?'fbx9-anim':''}" role="group" aria-label="Top scorers">
+    <div class="fbx9-head"><span class="eyebrow">Top scorers</span><small class="muted">by goals</small></div>
+    <div class="fbx9-pod">${col(top[1],2)}${col(top[0],1)}${col(top[2],3)}</div>
+    ${rest.length?`<div class="fbx9-rest" aria-label="More scorers">${rest.map((p,i)=>`<div class="fbx9-chip" style="opacity:${Math.max(.38,1-i*.13).toFixed(2)}"><span class="fbx9-cplace">${fbx9Ord(p.__r)}</span><span class="fbx9-cnum display">${Number(p.num)}</span><span class="fbx9-cname">${pname(p,full)}</span><span class="fbx9-cg"><b class="num">${p.g}</b> ${p.g===1?'goal':'goals'}</span></div>`).join('')}</div>`:''}
+  </div>`}
 function squadSection(){
   const full=!!META.fullNames;const rs=withTotals().sort((a,b)=>b.g-a.g||b.a-a.a||a.num-b.num);const top=rs[0]&&rs[0].g>0?rs[0]:null;const tg=rs.reduce((s,p)=>s+p.g,0),ta=rs.reduce((s,p)=>s+p.a,0);
   const g=standings(matches).find(r=>r.id===GOLD);
@@ -3027,6 +3041,7 @@ function squadSection(){
   return `<section class="card" id="squad"><div class="card-h"><h3>Trading cards</h3><small>${roster.length} cards · tap to flip</small></div>
    ${top?`<div class="banner" style="margin-bottom:12px">🥇 <b>Golden Boot:</b> ${pname(top,full)} · ${top.g} ${top.g===1?'goal':'goals'}${top.a?` · ${top.a} ${top.a===1?'assist':'assists'}`:''}</div>`:''}
    <p class="small fg2" style="margin:0 0 10px">${g.gf} team goals this season · scorers filled in for ${done} of ${games.length} games${tg?` · ${tg} goals and ${ta} assists credited so far`:''}. Parents can help: tap <b>Report goals, assists &amp; saves</b> below.</p>
+   ${fbx9Podium(rs,full)}
    ${playerCards(rs,full)}
    ${tg?goalsBoard(rs,full):''}
    ${reportSection(games)}
@@ -3649,6 +3664,45 @@ checkData();
 delete G.stub;
 changed();
 </script>
+<style id="fbx9-style">
+/* Top-scorers podium (Oct 18 2026). fbx9- names only. */
+.fbx9{margin:0 0 14px;padding:12px 12px 10px;border:1px solid var(--line);border-radius:var(--r,16px);background:radial-gradient(120% 90% at 50% 0%,rgba(201,164,92,.16),transparent 60%),var(--bg-2);overflow:hidden}
+.fbx9-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px}
+.fbx9-pod{display:grid;grid-template-columns:1fr 1.12fr 1fr;align-items:end;gap:8px;max-width:460px;margin:0 auto}
+.fbx9-col{display:flex;flex-direction:column;align-items:center;min-width:0}
+.fbx9-who{display:flex;flex-direction:column;align-items:center;text-align:center;min-width:0;width:100%;padding-bottom:6px}
+.fbx9-num{font-size:34px;line-height:1;color:var(--gold-2);text-shadow:0 2px 14px rgba(201,164,92,.35)}
+.fbx9-s1 .fbx9-num{font-size:46px}
+.fbx9-name{font-weight:700;font-size:13px;color:var(--fg);margin-top:2px;max-width:100%;overflow-wrap:anywhere}
+.fbx9-g{font-size:11.5px;color:var(--fg-2)}
+.fbx9-g b{color:var(--fg);font-size:13px}
+.fbx9-step{position:relative;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:8px;border-radius:10px 10px 4px 4px;box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 8px 18px rgba(0,0,0,.28);transform-origin:bottom}
+.fbx9-step::after{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(115deg,rgba(255,255,255,.28) 0%,transparent 38%);pointer-events:none}
+.fbx9-place{font-size:22px;line-height:1;color:rgba(20,16,8,.82);letter-spacing:.04em}
+.fbx9-step small{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:rgba(20,16,8,.65);font-weight:800;margin-top:2px}
+.fbx9-r1 .fbx9-step{height:92px;background:linear-gradient(180deg,#f3d98a,#c9a45c 55%,#9c7a34)}
+.fbx9-r2 .fbx9-step{height:68px;background:linear-gradient(180deg,#eef1f5,#bfc5cd 55%,#8d949d)}
+.fbx9-r3 .fbx9-step{height:52px;background:linear-gradient(180deg,#f0c49a,#c88a55 55%,#8f5a2e)}
+.fbx9-r4 .fbx9-step{height:40px;background:linear-gradient(180deg,var(--surface-2,#2a2a30),var(--surface,#1c1c21))}
+.fbx9-r4 .fbx9-place{color:var(--fg-2)}
+.fbx9-rest{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin:12px 0 0}
+.fbx9-chip{flex:0 0 auto;display:grid;grid-template-columns:auto auto;grid-template-areas:"p n" "nm nm" "g g";column-gap:6px;align-items:baseline;min-width:72px;padding:6px 9px;border:1px solid var(--line-2);border-radius:12px;background:var(--bg)}
+.fbx9-cplace{grid-area:p;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--gold)}
+.fbx9-cnum{grid-area:n;font-size:20px;line-height:1;color:var(--gold-2);justify-self:end}
+.fbx9-cname{grid-area:nm;font-size:12.5px;font-weight:700;color:var(--fg);white-space:nowrap}
+.fbx9-cg{grid-area:g;font-size:11px;color:var(--fg-2)}
+.fbx9-cg b{color:var(--fg)}
+.fbx9-empty{visibility:hidden}
+@media (prefers-reduced-motion:no-preference){
+  .fbx9-anim .fbx9-step{animation:fbx9rise .7s cubic-bezier(.2,.8,.2,1) both}
+  .fbx9-anim .fbx9-who{animation:fbx9pop .5s ease-out both}
+  .fbx9-anim .fbx9-s3 .fbx9-step,.fbx9-anim .fbx9-s3 .fbx9-who{animation-delay:.05s}
+  .fbx9-anim .fbx9-s2 .fbx9-step,.fbx9-anim .fbx9-s2 .fbx9-who{animation-delay:.2s}
+  .fbx9-anim .fbx9-s1 .fbx9-step,.fbx9-anim .fbx9-s1 .fbx9-who{animation-delay:.38s}
+}
+@keyframes fbx9rise{from{transform:scaleY(.05);opacity:0}to{transform:none;opacity:1}}
+@keyframes fbx9pop{from{transform:translateY(10px);opacity:0}to{transform:none;opacity:1}}
+</style>
 <style id="fbx8-style">
 /* Game report (Oct 18 2026): title, column headings, goalkeeping. fbx8- names only. */
 .fbx8-head{margin-top:12px;padding-bottom:8px;border-bottom:1px solid var(--line)}
