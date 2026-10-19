@@ -3914,6 +3914,34 @@ body.fbx5-on .fbx-overlay:not(.fbx5-overlay){display:none}
 .fbx5-c-a{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .fbx5-c-a .btn{text-decoration:none}
 </style>
+<style id="fbx6-style">
+/* Oct 19 2026 (fbx6): nothing spills out of a player's card back or the family contact lists.
+   Card back: the Family contacts chip stays on one line at the bottom and scales with the card; when room is
+   short the badge strip gives way (it's on the card front too). Small phones get a tighter back. fbx6- block only. */
+.nc-back .fbx5-famchip{order:3;margin-top:auto;align-self:stretch;justify-content:center;flex-shrink:0;box-sizing:border-box;max-width:100%;min-width:0;white-space:nowrap;overflow:hidden;font-size:clamp(9px,6.6cqw,12px);padding:clamp(3px,2.4cqw,6px) clamp(4px,3cqw,10px);gap:clamp(2px,2cqw,6px);line-height:1.2}
+.nc-back .fbx5-famchip b{font-size:clamp(8px,5.6cqw,11px);padding:0 clamp(3px,2.6cqw,6px);flex:none}
+.nc-back:has(.fbx5-famchip)>.nc-badge-list,.nc-back:has(.fbx5-famchip)>p.small:not(.nc-flipback){order:2;flex-wrap:nowrap;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;margin-top:5px}
+.nc-back:has(.fbx5-famchip) .nc-flipback{display:none}
+@container (max-width:199px){.nc-back:has(.fbx5-famchip)>.nc-badge-list,.nc-back:has(.fbx5-famchip)>p.small:not(.nc-flipback){display:none}}
+@container (max-width:150px){
+  .nc-back{padding:7px!important}
+  .nc-back-head .eyebrow{font-size:8px;letter-spacing:.1em;white-space:nowrap}
+  .nc-back-num{font-size:20px}
+  .nc-back-name{font-size:15px;margin-top:2px}
+  .nc-back-pos{font-size:8px;letter-spacing:.1em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .nc-rows{margin-top:3px}
+  .nc-rows div{padding:0;font-size:10.5px;gap:4px;line-height:1.35}
+  .nc-rows div span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .nc-rows b{font-size:14px}
+  .nc-back-head{line-height:1}
+  .nc-back .fbx5-famchip{padding:3px 3px;font-size:8.5px;gap:2px;letter-spacing:-.01em}
+  .nc-back .fbx5-famchip b{font-size:8px;padding:0 3px}
+}
+/* Family contact lists (Squad tab card + tap-a-player sheet): long emails/phones wrap instead of running out of the box */
+.fbx2-fam-row>div,.fbx5-c,.fbx5-c-h,.fbx5-c-a{min-width:0}
+.fbx2-contact a,.fbx2-contact b,.fbx5-c-h b,.fbx5-c a{white-space:normal;overflow-wrap:anywhere;word-break:break-word;min-width:0;max-width:100%}
+.fbx5-c-a .btn{max-width:100%;box-sizing:border-box;white-space:normal;overflow-wrap:anywhere;text-align:center}
+</style>
 <style id="fbx4-style">
 /* GotSport link card on the Table tab (Oct 18 2026). fbx4- names only. */
 .fbx4-rank a.btn{text-decoration:none}
