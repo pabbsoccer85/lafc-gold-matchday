@@ -2717,6 +2717,7 @@ function matchWeeks(){const map={};for(const m of matches){(map[m.date]=map[m.da
 
 /* ---------- State ---------- */
 const state={tab:location.hash.replace('#','')||store.get('tab','home'),scout:GOLD,picks:store.get('picks',{}),name:store.get('name',''),boost:0,chaos:2.5,sim:null,gameId:null,gamesMode:'calendar',gamesTeam:'all',tableSort:'rank',search:'',mgr:false,mgrEdits:{},mgrNew:[],mgrPool:null,mgrRoster:null,mgrScorers:null,rep:{mid:null,rows:{}},flipped:null,bioOpen:false,canEdit:null,user:null,artifact:null,celebrated:false};
+state.admin=!!store.get('admin',false);
 const VALID=['home','table','games','practices','predict','squad','more'];
 if(state.tab.startsWith('event/')){state.eventId=state.tab.slice(6);state.tab='event'}
 if(!VALID.includes(state.tab)&&state.tab!=='event')state.tab='home';
@@ -2745,13 +2746,82 @@ const TABS=[['home','Matchday'],['table','Table'],['games','Games'],['practices'
 function chatFab(){const link=fbx7Safe(META.chatLink);const inner=`<span class="chat-fab-ring"></span><span class="chat-fab-btn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H9.4L5.6 19.3c-.6.5-1.6.1-1.6-.7V5.5z" fill="currentColor"/><circle cx="9" cy="9.5" r="1.2" fill="#0a0a0c"/><circle cx="12.2" cy="9.5" r="1.2" fill="#0a0a0c"/><circle cx="15.4" cy="9.5" r="1.2" fill="#0a0a0c"/></svg></span><span class="chat-fab-label display">Team chat</span>`;
   if(window.__fbxOn)return `<button class="chat-fab" id="chat-fab" type="button" aria-label="Open the team chat">${inner}</button>`;
   return link?`<a class="chat-fab" id="chat-fab" href="${esc(link)}" target="_blank" rel="noreferrer" aria-label="Open the team chat">${inner}</a>`:`<button class="chat-fab" id="chat-fab" type="button" aria-label="Team chat">${inner}</button>`}
+/* ---------- fbx12 (Oct 18 2026): Admin mode — staff edit right where things are shown; one Publish bar sends everything ---------- */
+/* the blinking "Scores as of" time stamps itself whenever admin mode publishes */
+function fbx12Stamp(){const d=new Date();try{const a=new Intl.DateTimeFormat('en-US',{timeZone:'America/Los_Angeles',month:'short',day:'numeric',year:'numeric'}).format(d);const b=new Intl.DateTimeFormat('en-US',{timeZone:'America/Los_Angeles',hour:'numeric',minute:'2-digit'}).format(d);return a+' · '+b+' PT'}catch(e){return META.snapshotLabel}}
+function fbx12On(){return state.canEdit===true&&!!state.admin}
+function fbx12Changed(){const ed=state.mgrEdits;return Object.keys(ed).length+state.mgrNew.length+(state.mgrPool?1:0)+(state.mgrRoster?1:0)+(state.mgrScorers?1:0)+(state.mgrMoments?1:0)+(state.mgrChatLink!=null&&state.mgrChatLink!==(META.chatLink||'')?1:0)+(state.mgrAlbum!=null&&state.mgrAlbum!==(META.momentsAlbum||'')?1:0)+(state.mgrEvents?1:0)+(state.mgrLabel!=null&&state.mgrLabel!==META.snapshotLabel?1:0)+(state.mgrKitHome!=null&&state.mgrKitHome!==META.kitHome?1:0)+(state.mgrKitAway!=null&&state.mgrKitAway!==META.kitAway?1:0)+(state.mgrArrive!=null&&state.mgrArrive!==(META.arriveMinutes??45)?1:0)}
+function fbx12M(m){if(!fbx12On())return m;const e=state.mgrEdits[m.id];if(!e)return m;const n={...m,...e};if(n.status==='final'&&(n.hg==null||n.ag==null))n.status='scheduled';if(n.status!=='final'&&n.status!=='postponed'&&n.hg!=null&&n.ag!=null)n.status='final';if(n.status==='postponed'){n.hg=null;n.ag=null}return n}
+function fbx12Events(){return (fbx12On()&&state.mgrEvents)||events}
+function fbx12Discard(){state.mgrEdits={};state.mgrNew=[];state.mgrPool=null;state.mgrRoster=null;state.mgrScorers=null;state.mgrEvents=null;state.mgrLabel=null;state.mgrKitHome=state.mgrKitAway=state.mgrArrive=null;state.mgrMoments=null;state.mgrChatLink=null;state.mgrAlbum=null}
+function fbx12Open(k,dflt){const o=state.fbx12Open||(state.fbx12Open={});return k in o?o[k]:!!dflt}
+function fbx12Top(){if(!fbx12On())return '';return `<div class="fbx12-note"><b>⚙ Admin mode</b> — tap <b>✎</b> to change anything right here, then <b>Publish</b>. Parents never see these controls.</div>`}
+function fbx12Bar(){if(!fbx12On())return '';const n=fbx12Changed();if(!n)return '';return `<div class="mgr-sticky fbx12-bar" role="region" aria-label="Unpublished changes"><span class="fbx12-cnt"><b>${n}</b> ${n>1?'changes':'change'}</span><button class="btn ghost sm" id="fbx12-undo">Undo all</button><button class="btn gold sm" id="fbx12-pub">Publish</button></div>`}
+const fbx12StatusOpts=e=>[['scheduled','Scheduled'],['final','Final'],['unreported','Played, not posted'],['postponed','Postponed']].map(([v,l])=>`<option value="${v}" ${e.status===v?'selected':''}>${l}</option>`).join('');
+function fbx12GameEd(m0){if(!fbx12On()||!m0)return '';const base=matches.find(x=>x.id===m0.id);if(!base)return '';const ed=state.mgrEdits[base.id];const e={...base,...(ed||{})};const dirty=!!ed;const ours=base.home===GOLD||base.away===GOLD;const k='g'+base.id;
+  return `<details class="fbx12-ed ${dirty?'dirty':''}" data-fbx12-key="${k}" ${fbx12Open(k,dirty)?'open':''}><summary>✎ ${dirty?'Edited — ':''}Edit ${esc(T(base.home).short)} vs ${esc(T(base.away).short)}</summary><div class="fbx12-f">
+    <label class="fbx12-sc">Score<span><input type="number" inputmode="numeric" min="0" max="30" data-mgr="${base.id}:hg" value="${e.hg??''}" aria-label="${esc(T(base.home).short)} goals"><i>–</i><input type="number" inputmode="numeric" min="0" max="30" data-mgr="${base.id}:ag" value="${e.ag??''}" aria-label="${esc(T(base.away).short)} goals"></span></label>
+    <label>Status<select data-mgr="${base.id}:status">${fbx12StatusOpts(e)}</select></label>
+    <label>Date<input type="date" data-fbx12-g="${base.id}:date" value="${esc(e.date||'')}"></label>
+    <label>Kickoff<input type="text" data-fbx12-g="${base.id}:time" value="${esc(e.time||'')}" placeholder="4:30 PM"></label>
+    ${ours?`<label class="w">Field<input type="text" data-fbx12-g="${base.id}:venue" value="${esc(e.venue||'')}" placeholder="Park · field"></label><label>Kit<select data-mgr="${base.id}:kit"><option value="" ${!e.kit?'selected':''}>Default (${base.home===GOLD?esc(META.kitHome||'home'):esc(META.kitAway||'away')})</option>${KITS.map(x=>`<option value="${x}" ${e.kit===x?'selected':''}>${x}</option>`).join('')}</select></label>`:''}
+    ${dirty?`<button class="btn quiet sm" data-mgr-undo="${base.id}">Undo</button>`:''}<span class="fbx12-hint">Blank score = not played yet.</span></div></details>`}
+function fbx12EvEd(it){if(!fbx12On()||!it||!it.e)return '';const src=fbx12Events();const i=src.indexOf(it.e);if(i<0)return '';const e=it.e;const k='e'+(e.id||i);const what=((EVENT_KIND[e.kind]||EVENT_KIND.other)[0]).toLowerCase();
+  return `<details class="fbx12-ed" data-fbx12-key="${k}" ${fbx12Open(k)?'open':''}><summary>✎ Edit this ${esc(what)}</summary><div class="fbx12-f">
+    <label>Date<input type="date" data-fbx12-ev="${i}:date" value="${esc(e.date||'')}"></label>
+    <label>Time<input type="text" data-fbx12-ev="${i}:time" value="${esc(e.time||'')}" placeholder="6:00 PM"></label>
+    <label>Length (min)<input type="number" inputmode="numeric" min="15" max="720" data-fbx12-ev="${i}:minutes" value="${Number(e.minutes)||90}"></label>
+    <label class="w">Title<input type="text" maxlength="80" data-fbx12-ev="${i}:title" value="${esc(e.title||'')}"></label>
+    <label class="w">Where<input type="text" data-fbx12-ev="${i}:where" value="${esc(e.where||'')}"></label>
+    <label class="w">Notes<input type="text" maxlength="160" data-fbx12-ev="${i}:notes" value="${esc(e.notes||'')}"></label>
+    <button class="btn quiet sm" data-fbx12-evdel="${i}">🗑 Delete</button></div></details>`}
+function fbx12AddEvent(kind){if(!fbx12On())return '';const lastWhere=(fbx12Events().filter(e=>e.kind===kind).slice(-1)[0]||{}).where||'';const k='add-'+kind;
+  return `<details class="fbx12-ed fbx12-add" data-fbx12-key="${k}" ${fbx12Open(k)?'open':''}><summary>＋ Add ${kind==='practice'?'practices':'a team event'}</summary><div class="fbx12-f">
+    <label>What<select id="ev-kind">${Object.entries(EVENT_KIND).map(([v,[l]])=>`<option value="${v}" ${v===kind?'selected':''}>${l}</option>`).join('')}</select></label>
+    <label class="w">Title<input type="text" id="ev-title" maxlength="80" value="${kind==='practice'?'Practice':''}" placeholder="Team dinner"></label>
+    <label>Date<input type="date" id="ev-date"></label><label>Time<input type="text" id="ev-time" placeholder="6:00 PM"></label>
+    <label>Length (min)<input type="number" id="ev-min" value="90" min="15" max="720"></label><label>Repeat weekly ×<input type="number" id="ev-repeat" value="1" min="1" max="40"></label>
+    <label class="w">Where<input type="text" id="ev-where" value="${esc(lastWhere)}"></label><label class="w">Notes<input type="text" id="ev-notes" maxlength="160"></label>
+    <button class="btn gold sm" id="ev-add">Add</button></div></details>`}
+function fbx12AddGame(){if(!fbx12On())return '';const k='add-game';
+  return `<details class="fbx12-ed fbx12-add" data-fbx12-key="${k}" ${fbx12Open(k,state.mgrNew.length)?'open':''}><summary>＋ Add a game (reschedule / make-up)</summary><div class="fbx12-f">
+    <label>Date<input type="date" id="new-date"></label><label>Home<select id="new-home">${teams.map(x=>`<option value="${x.id}">${esc(x.short)}</option>`).join('')}</select></label><label>Away<select id="new-away">${teams.map(x=>`<option value="${x.id}" ${x.id===GOLD?'selected':''}>${esc(x.short)}</option>`).join('')}</select></label>
+    <label>Kickoff<input type="text" id="new-time" placeholder="4:30 PM"></label><label class="w">Field<input type="text" id="new-venue" placeholder="Park · field"></label><button class="btn gold sm" id="mgr-add-fixture">Add game</button>
+    ${state.mgrNew.length?`<div class="list-tight w">${state.mgrNew.map((g,i)=>`<div class="kv"><span>New: ${fmtDate(g.date)} · ${esc(T(g.home).short)} vs ${esc(T(g.away).short)}${g.time?' · '+esc(g.time):''}</span><button class="btn quiet sm" data-mgr-new-del="${i}">remove</button></div>`).join('')}</div>`:''}</div></details>`}
+function fbx12Settings(){if(!fbx12On())return '';
+  return `<section class="card fbx12-card"><div class="card-h"><h3>⚙ Team settings</h3><small>admin only</small></div><div class="fbx12-f">
+    <label>Home kit<select id="mgr-kit-home">${KITS.map(k=>`<option value="${k}" ${(state.mgrKitHome??META.kitHome)===k?'selected':''}>${k}</option>`).join('')}</select></label>
+    <label>Away kit<select id="mgr-kit-away">${KITS.map(k=>`<option value="${k}" ${(state.mgrKitAway??META.kitAway)===k?'selected':''}>${k}</option>`).join('')}</select></label>
+    <label>Arrive before kickoff (min)<input type="number" id="mgr-arrive" min="0" max="180" value="${state.mgrArrive??META.arriveMinutes??45}"></label>
+    <label class="w">"Scores as of" time (top of the page) — updates by itself when you publish<input type="text" id="mgr-label" value="${esc(state.mgrLabel??META.snapshotLabel)}"></label>
+    <label class="w">Team chat link (shown to approved families)<input type="text" inputmode="url" id="mgr-chatlink" placeholder="https://chat.whatsapp.com/…" value="${esc(state.mgrChatLink??META.chatLink??'')}"></label>
+    <label class="w">Team album link<input type="text" inputmode="url" id="mgr-album" placeholder="https://photos.app.goo.gl/…" value="${esc(state.mgrAlbum??META.momentsAlbum??'')}"></label></div></section>`}
+function fbx12RosterEd(){const rs=(state.mgrRoster||roster);
+  return `<section class="card fbx12-card"><div class="card-h"><h3>Roster</h3><small>✎ editing · ${rs.length} players</small></div><div class="fbx12-ros-h"><span>#</span><span>First name</span><span>Last initial</span><span>Pos</span><span></span></div><div class="list-tight">${rs.map((p,i)=>`<div class="mgr-player"><input type="number" inputmode="numeric" min="0" max="99" data-ros="${i}:num" value="${p.num}" aria-label="number"><input type="text" data-ros="${i}:first" value="${esc(p.first)}" placeholder="First"><input type="text" data-ros="${i}:last" value="${esc(p.last)}" placeholder="Last" maxlength="20"><input type="text" data-ros="${i}:pos" value="${esc(p.pos||'')}" placeholder="Pos"><button class="btn quiet sm" data-ros-del="${i}" aria-label="Remove player">✕</button></div>`).join('')}</div>
+    <button class="btn ghost sm" id="mgr-add-player" style="margin-top:8px">+ Add player</button><div class="staff" style="margin-top:12px">${staff.map(s=>`<span class="chip">${esc(s.role)} · ${esc(s.name)}</span>`).join('')}</div></section>`}
+function fbx12CodeBox(){if(!fbx12On())return '';const k='code';const sc=state.mgrScorers||scorers;
+  return `<details class="fbx12-ed" data-fbx12-key="${k}" ${fbx12Open(k)?'open':''}><summary>✎ Goal reports on file (${Object.keys(sc).length}) · paste an old code</summary><div class="fbx12-f">
+    <div class="list-tight w">${Object.entries(sc).map(([mid,rows])=>{const g=matches.find(x=>x.id===mid);return g?`<div class="kv"><span>${fmtDate(g.date)} · ${esc(T(g.home).short)} ${g.hg}–${g.ag} ${esc(T(g.away).short)} · ${rows.reduce((a,r)=>a+r.g,0)} goals, ${rows.reduce((a,r)=>a+r.a,0)} assists</span><button class="btn quiet sm" data-mgr-sc-del="${mid}">remove</button></div>`:''}).join('')}</div>
+    <label class="w">Someone texted you a code?<input type="text" id="mgr-code" placeholder="GOLD1G.…"></label><button class="btn ghost sm" id="mgr-add-code">Add code</button></div></details>`}
+function fbx12MomentsEd(){if(!fbx12On())return '';const mo=state.mgrMoments||META.moments||[];if(!mo.length)return '';
+  return `<div class="fbx12-ed open-static"><div class="eyebrow" style="margin:0 0 6px">✎ Moments</div><div class="list-tight">${mo.map((x,i)=>`<div class="kv"><span style="display:flex;align-items:center;gap:8px;min-width:0">${x.src?`<img src="${esc(x.src)}" alt="" style="width:36px;height:36px;object-fit:cover;border-radius:6px">`:'🎬'}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(x.caption||'(no caption)')}</span></span><button class="btn quiet sm" data-mgr-mom-del="${i}">remove</button></div>`).join('')}</div></div>`}
+function fbx12Header(){const slot=document.getElementById('fbx12-slot');if(!slot)return;const html=state.canEdit===true?`<button class="fbx12-sw ${state.admin?'on':''}" id="fbx12-sw" type="button" aria-pressed="${!!state.admin}" title="Admin mode: edit the app right here"><span class="fbx12-knob"></span><span class="fbx12-lbl">Admin</span></button>`:'';if(slot.innerHTML!==html)slot.innerHTML=html;document.body.classList.toggle('fbx12-admin',fbx12On());
+  const sw=document.getElementById('fbx12-sw');if(sw)sw.onclick=()=>{state.admin=!state.admin;store.set('admin',state.admin);const n=fbx12Changed();renderKeepScroll();toast(state.admin?'Admin mode on — tap ✎ to edit':n?`Admin mode off — your ${n} unpublished ${n>1?'changes are':'change is'} kept`:'Admin mode off')}}
+function fbx12Wire(){
+  $$('[data-fbx12-g]').forEach(inp=>{inp.onchange=()=>{const [id,f]=inp.dataset.fbx12G.split(':');const base=matches.find(x=>x.id===id);if(!base)return;const e={...(state.mgrEdits[id]||{})};let v=inp.value.trim();if(v==='')v=null;e[f]=v;if(JSON.stringify(v)===JSON.stringify(base[f]??null))delete e[f];if(Object.keys(e).every(k=>JSON.stringify(e[k])===JSON.stringify(base[k]??null)))delete state.mgrEdits[id];else state.mgrEdits[id]=e;renderKeepScroll()}});
+  $$('[data-fbx12-ev]').forEach(inp=>{inp.onchange=()=>{const [i,f]=inp.dataset.fbx12Ev.split(':');const cur=(state.mgrEvents||events).map(x=>({...x}));const row=cur[+i];if(!row)return;let v=inp.value.trim();if(f==='minutes')v=Math.max(15,Math.min(720,Math.round(+v)||90));if(f==='date'&&!v){toast('A date is needed');renderKeepScroll();return}if(f==='title'&&!v){toast('Give it a title');renderKeepScroll();return}row[f]=v;const k='e'+(row.id||i);state.mgrEvents=cur.sort((a,b)=>fbx7Key(a.date,a.time).localeCompare(fbx7Key(b.date,b.time)));(state.fbx12Open||(state.fbx12Open={}))[k]=true;renderKeepScroll()}});
+  $$('[data-fbx12-evdel]').forEach(b=>b.onclick=()=>{const cur=(state.mgrEvents||events).slice();const gone=cur.splice(+b.dataset.fbx12Evdel,1)[0];state.mgrEvents=cur;renderKeepScroll();toast((gone&&gone.title?gone.title+' ':'')+'removed — publish to make it final')});
+  $$('details.fbx12-ed[data-fbx12-key]').forEach(d=>d.ontoggle=()=>{(state.fbx12Open||(state.fbx12Open={}))[d.dataset.fbx12Key]=d.open});
+  const u=$('#fbx12-undo');if(u)u.onclick=()=>{fbx12Discard();renderKeepScroll();toast('All changes undone')};
+  const p=$('#fbx12-pub');if(p)p.onclick=()=>{p.disabled=true;p.textContent='Publishing…';publishChanges()};
+}
 function shell(){
   app.innerHTML=`<div class="shell">
   ${chatFab()}
   <header class="topbar"><div class="topbar-in">
     <div class="brand" id="brand">${crest(GOLD,'md')}<div><b class="brand-long">${esc((META.teamName||'LAFC Gold').toUpperCase())}</b><small>Matchday · ECNL RL Southern Cal · ${esc(META.season)}</small></div></div>
     <nav class="topnav" role="tablist">${TABS.map(([id,l])=>`<button role="tab" data-tab="${id}" aria-selected="${state.tab===id}">${l}</button>`).join('')}</nav>
-    <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch to ${currentTheme()==='light'?'black':'white'} & gold" title="Black & gold / White & gold"><span class="tt-knob"></span><span class="tt-ico">${currentTheme()==='light'?'☀️':'🌙'}</span></button>
+    <div class="fbx12-ctl"><button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch to ${currentTheme()==='light'?'black':'white'} & gold" title="Black & gold / White & gold"><span class="tt-knob"></span><span class="tt-ico">${currentTheme()==='light'?'☀️':'🌙'}</span></button><span id="fbx12-slot"></span></div>
     <div class="live-pill" title="Last official check"><i></i><span>Scores as of <b>${esc(META.snapshotLabel)}</b></span></div>
   </div></header>
   <main class="main" id="main"></main>
@@ -2759,20 +2829,20 @@ function shell(){
   </div>`;
   $$('[data-tab]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.tab)));
   const tt=$('#theme-toggle');if(tt)tt.onclick=()=>{const t=currentTheme()==='light'?'dark':'light';store.set(THEME_KEY,t);applyTheme(t);tt.setAttribute('aria-label','Switch to '+(t==='light'?'black':'white')+' & gold');$('.tt-ico',tt).textContent=t==='light'?'☀️':'🌙';toast(t==='light'?'White & gold ☀️':'Black & gold 🌙')};
-  let taps=0,tapT;$('#brand').addEventListener('click',()=>{taps++;clearTimeout(tapT);tapT=setTimeout(()=>taps=0,1500);if(taps>=5){taps=0;state.mgrReveal=true;go('more');toast('Manager mode unlocked')}});
+  let taps=0,tapT;$('#brand').addEventListener('click',()=>{taps++;clearTimeout(tapT);tapT=setTimeout(()=>taps=0,1500);if(taps>=5){taps=0}});
 }
 function openEvent(uid){state.prevTab=state.tab==='event'?(state.prevTab||'games'):state.tab;state.eventId=uid;state.tab='event';try{history.replaceState(null,'','#event/'+uid)}catch(e){}$$('[data-tab]').forEach(b=>b.setAttribute('aria-selected','false'));render();window.scrollTo({top:0,behavior:'instant'})}
 function go(tab){state.tab=tab;store.set('tab',tab);try{history.replaceState(null,'',' #'.trim()+tab)}catch(e){}$$('[data-tab]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===tab)));render();window.scrollTo({top:0,behavior:'instant'})}
-function render(){const m=$('#main');const views={home,table,games,practices:practicesView,predict,squad:squadView,more,event:eventPage};m.innerHTML=`<div class="view">${views[state.tab]()}</div>${footer()}`;wire();}
+function render(){const m=$('#main');const views={home:()=>`<div class="fbx14-asof" title="Last update"><i></i><span>Scores as of <b>${esc(META.snapshotLabel)}</b></span></div>`+fbx12Settings()+home(),table,games,practices:practicesView,predict,squad:squadView,more,event:eventPage};m.innerHTML=`<div class="view">${fbx12Top()}${views[state.tab]()}</div>${fbx12Bar()}${footer()}`;wire();fbx12Wire();fbx12Header();}
 function footer(){return `<footer class="footer"><div><b>BLACK. GOLD. TOGETHER.</b>A parent-made fan hub · not an official club or ECNL app · forecasts are a model, not odds</div><div class="links"><a href="https://theecnl.com/sports/2023/8/8/ECNLRLB_0808230006.aspx" target="_blank" rel="noreferrer">Official standings ↗</a><a href="https://theecnl.com/sports/2023/8/8/ECNLRLB_0808235620.aspx" target="_blank" rel="noreferrer">Official schedule ↗</a></div></footer>`}
 
 /* Rows */
 function teamLockup(id,right=false,tap=true){const t=T(id);return `<button class="team ${right?'r':''} ${tap?'tap':''}" data-scout="${id}" ${tap?'':'tabindex="-1"'}>${crest(id,'sm')}<span>${esc(t.short)}${id===GOLD?'<small>OUR TEAM</small>':''}</span></button>`}
 function arriveKit(m){if(!(m.home===GOLD||m.away===GOLD)||isFinal(m)||m.status==='postponed')return '';const mins=+META.arriveMinutes||0;const hm=parseTime(m.time);let arr='';if(mins&&hm){const d=new Date(2000,0,1,hm[0],hm[1]-mins);arr=d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}const kit=m.kit||(m.home===GOLD?META.kitHome:META.kitAway);return `<span class="kit-line">${arr?`⏰ Arrive by <b>${arr}</b> (${mins} min before)`:mins?`⏰ Arrive ${mins} min before kickoff`:''}${kit?` · 👕 <b>${esc(kit)}</b> kit${m.kit?'':` (${m.home===GOLD?'home':'away'})`}`:''}</span>`}
-function scoreRow(m,opts={}){const fin=isFinal(m),pick=opts.pick;const ours=m.home===GOLD||m.away===GOLD;const fbx7T=todayISO(),fbx7H=fbx7Hm(m.time),fbx7Ko=fbx7PtMs(m.date,fbx7H);let label=fin?'FULL TIME':m.status==='postponed'?'POSTPONED':(m.date<fbx7T||(fbx7H&&Date.now()>fbx7Ko+150*60e3))?'NOT POSTED':m.date===fbx7T?(fbx7H&&Date.now()>=fbx7Ko?'IN PLAY':'TODAY'):'UPCOMING';
+function scoreRow(m,opts={}){m=fbx12M(m);const fbx12E=opts.pick?'':fbx12GameEd(m);const fin=isFinal(m),pick=opts.pick;const ours=m.home===GOLD||m.away===GOLD;const fbx7T=todayISO(),fbx7H=fbx7Hm(m.time),fbx7Ko=fbx7PtMs(m.date,fbx7H);let label=fin?'FULL TIME':m.status==='postponed'?'POSTPONED':(m.date<fbx7T||(fbx7H&&Date.now()>fbx7Ko+150*60e3))?'NOT POSTED':m.date===fbx7T?(fbx7H&&Date.now()>=fbx7Ko?'IN PLAY':'TODAY'):'UPCOMING';
   const mid=fin?`<div class="score num">${m.hg}–${m.ag}</div>`:`<div class="score vs">VS</div>`;
   const extra=[];if(m.time&&!fin)extra.push(`<span>${esc(m.time)} PT</span>`);if(m.venue&&!fin&&ours)extra.push(`<a href="https://www.google.com/maps/search/${encodeURIComponent(m.venue.split('·')[0].trim())}" target="_blank" rel="noreferrer">${esc(m.venue)} ↗</a>`);if(m.note)extra.push(`<span class="flag">⚑ ${esc(m.note)}</span>`);if(opts.ics&&!fin&&m.status!=='postponed'&&ours){const rs=rsvpSummary('g'+m.id);if(rs)extra.push(rs);extra.push(`<span class="tap-hint">Details ›</span>`)}
-  return `<div class="row ${ours?'ours':''} ${opts.ics&&ours&&!fin?'tap':''}" ${opts.ics&&ours&&!fin?`data-open-event="g${m.id}"`:''}><div class="when"><b>${fmtDate(m.date)}</b>${label}</div>${teamLockup(m.home)}${mid}${teamLockup(m.away,true)}${extra.length?`<div class="row-note">${extra.join('')}</div>`:''}${ours&&fin?scorerLine(m.id):''}</div>`}
+  return `<div class="row ${ours?'ours':''} ${opts.ics&&ours&&!fin?'tap':''}" ${opts.ics&&ours&&!fin?`data-open-event="g${m.id}"`:''}><div class="when"><b>${fmtDate(m.date)}</b>${label}</div>${teamLockup(m.home)}${mid}${teamLockup(m.away,true)}${extra.length?`<div class="row-note">${extra.join('')}</div>`:''}${ours&&fin?scorerLine(m.id):''}</div>${fbx12E}`}
 function formDots(f,n=5,pad=true){const arr=f.slice(-n);if(pad)while(arr.length<n)arr.unshift('x');return `<span class="form" aria-label="Form ${f.slice(-n).join(' ')}">${arr.map(v=>`<i class="${v}">${v==='x'?'':v}</i>`).join('')}</span>`}
 
 /* ---------- HOME ---------- */
@@ -2869,6 +2939,7 @@ function games(){
   return `<section class="card"><div class="card-h"><h3>Scores & fixtures</h3><small>${finals().length} played · ${matches.length} fixtures</small></div>
     <div class="controls" style="margin-bottom:10px"><div class="seg" role="group" aria-label="Show">${[['calendar','📅 Calendar'],['all','Everything'],['gold','Gold only'],['results','Results'],['upcoming','Upcoming']].map(([v,l])=>`<button data-mode="${v}" aria-pressed="${mode===v}">${l}</button>`).join('')}</div>
     <label style="flex:0 1 220px">Club<select id="games-team"><option value="all">All ${N} clubs</option>${teams.map(x=>`<option value="${x.id}" ${String(x.id)===String(team)?'selected':''}>${esc(x.short)}</option>`).join('')}</select></label></div>
+    ${fbx12AddGame()}
     <div class="rows">${body||'<div class="empty">Nothing here. Try a different filter.</div>'}</div>
     <details class="howto" style="margin-top:12px"><summary>About this calendar</summary><p>Fixtures come from the official ECNL schedule. Blank scores mean the result hasn’t been posted yet — never a 0–0. Two quirks in the official calendar are kept as published: Legends FC–Pateadores is listed twice and Del Mar–Pateadores is missing, and Gold has two games listed on March 6, 2027. Confirm those with the team manager.</p></details></section>`;
 }
@@ -2879,7 +2950,7 @@ function parseTime(t){const m=/^(\d{1,2}):(\d{2})\s*(AM|PM)?/i.exec(t||'');if(!m
 function icsStamp(date,time,addMin=0){const hm=parseTime(time);const d=new Date(date+'T'+(hm?String(hm[0]).padStart(2,'0')+':'+String(hm[1]).padStart(2,'0'):'12:00')+':00');d.setMinutes(d.getMinutes()+addMin);const z=n=>String(n).padStart(2,'0');return d.getFullYear()+z(d.getMonth()+1)+z(d.getDate())+'T'+z(d.getHours())+z(d.getMinutes())+'00'}
 function icsFor(items){const esc2=v=>String(v||'').replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/[,;]/g,m=>'\\'+m);const fbx7Now=new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d+/,'');const fbx7Day=d=>String(d).replace(/-/g,'');const fbx7Next=d=>{const x=new Date(d+'T12:00:00Z');x.setUTCDate(x.getUTCDate()+1);return x.toISOString().slice(0,10).replace(/-/g,'')};const ev=items.map(it=>`BEGIN:VEVENT\r\nUID:${it.uid}@gold-matchday\r\nDTSTAMP:${fbx7Now}\r\n${fbx7Hm(it.time)?`DTSTART;TZID=America/Los_Angeles:${icsStamp(it.date,it.time)}\r\nDTEND;TZID=America/Los_Angeles:${icsStamp(it.date,it.time,it.minutes||90)}`:`DTSTART;VALUE=DATE:${fbx7Day(it.date)}\r\nDTEND;VALUE=DATE:${fbx7Next(it.date)}`}\r\nSUMMARY:${esc2(it.title)}\r\n${it.where?'LOCATION:'+esc2(it.where)+'\r\n':''}${it.notes?'DESCRIPTION:'+esc2(it.notes)+'\r\n':''}END:VEVENT`).join('\r\n');const fbx7Tz='BEGIN:VTIMEZONE\r\nTZID:America/Los_Angeles\r\nBEGIN:DAYLIGHT\r\nTZOFFSETFROM:-0800\r\nTZOFFSETTO:-0700\r\nTZNAME:PDT\r\nDTSTART:19700308T020000\r\nRRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU\r\nEND:DAYLIGHT\r\nBEGIN:STANDARD\r\nTZOFFSETFROM:-0700\r\nTZOFFSETTO:-0800\r\nTZNAME:PST\r\nDTSTART:19701101T020000\r\nRRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU\r\nEND:STANDARD\r\nEND:VTIMEZONE\r\n';const fbx7Fold=t=>t.split('\r\n').map(l=>{let o='';while(l.length>74){o+=l.slice(0,74)+'\r\n ';l=l.slice(74)}return o+l}).join('\r\n');return fbx7Fold('BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Gold Matchday//EN\r\nCALSCALE:GREGORIAN\r\n'+fbx7Tz+ev+'\r\nEND:VCALENDAR')+'\r\n'}
 function calendarItems(){const gs=goldMatches().filter(m=>m.status!=='postponed').map(m=>{const s=goldSide(m);return{uid:'g'+m.id,kind:'game',date:m.date,time:m.time,title:`${s.at==='home'?'vs':'at'} ${T(s.opp).short} (ECNL RL)`,where:m.venue||'',minutes:90,m}});
-  const es=events.filter(e=>(e.kind||'event')!=='practice').map((e,i)=>({uid:'e'+(e.id||i),kind:e.kind||'event',date:e.date,time:e.time,title:e.title,where:e.where||'',notes:e.notes||'',minutes:e.minutes||90,e}));
+  const es=fbx12Events().filter(e=>(e.kind||'event')!=='practice').map((e,i)=>({uid:'e'+(e.id||i),kind:e.kind||'event',date:e.date,time:e.time,title:e.title,where:e.where||'',notes:e.notes||'',minutes:e.minutes||90,e}));
   return[...gs,...es].sort((a,b)=>(a.date+(parseTime(a.time)?String(parseTime(a.time)[0]).padStart(2,'0')+String(parseTime(a.time)[1]).padStart(2,'0'):'')).localeCompare(b.date+(parseTime(b.time)?String(parseTime(b.time)[0]).padStart(2,'0')+String(parseTime(b.time)[1]).padStart(2,'0'):'')))}
 function allItems(){const gs=goldMatches().filter(m=>m.status!=='postponed').map(m=>{const s=goldSide(m);return{uid:'g'+m.id,kind:'game',date:m.date,time:m.time,title:`${s.at==='home'?'vs':'at'} ${T(s.opp).short}`,where:m.venue||'',minutes:90,m}});
   const es=events.map((e,i)=>({uid:'e'+(e.id||i),kind:e.kind||'event',date:e.date,time:e.time,title:e.title,where:e.where||'',notes:e.notes||'',minutes:e.minutes||90,e}));return[...gs,...es]}
@@ -2904,7 +2975,8 @@ function eventPage(){const it=allItems().find(x=>x.uid===state.eventId);if(!it)r
   const avail=live?availabilityPanel(it.uid,past):`<div class="empty" style="margin-top:12px">Going / Maybe / No for every player — with names and who answered. Sign in under More → Your account and, once you’re approved, it switches on here.</div>`;
   return `<section class="card evp2"><button class="btn quiet sm ev-back" data-go="${backTab}">‹ Back</button>${hero}${seg}<div class="evp2-body">${tab==='details'?details:avail}</div></section>`}
 function rsvpSummary(uid){if(typeof rsvpFor!=='function'||!state.live)return '';const r=rsvpFor(uid);if(!r.rows.length)return '';return `<span class="rsvp-sum"><i class="g">✓ ${r.counts.going}</i>${r.counts.maybe?`<i class="m">? ${r.counts.maybe}</i>`:''}${r.counts.no?`<i class="n">✕ ${r.counts.no}</i>`:''}</span>`}
-function eventCard(it){const past=it.date<todayISO();const d=new Date(it.date+'T12:00:00');const day=d.getDate(),wd=d.toLocaleDateString('en-US',{weekday:'short'}),mo=d.toLocaleDateString('en-US',{month:'short'});
+function eventCard(it){return fbx12CardBase(it)+(it.kind==='game'?fbx12GameEd(it.m):fbx12EvEd(it))}
+function fbx12CardBase(it){const past=it.date<todayISO();const d=new Date(it.date+'T12:00:00');const day=d.getDate(),wd=d.toLocaleDateString('en-US',{weekday:'short'}),mo=d.toLocaleDateString('en-US',{month:'short'});
   const KIT_SWATCH={White:'#f5f2ea',Black:'#111',Gold:'#c9a45c',Grey:'#8a8a8a'};const sum=rsvpSummary(it.uid);
   if(it.kind==='game'){const m=it.m;const s=goldSide(m);const fin=isFinal(m);const kit=m.kit||(m.home===GOLD?META.kitHome:META.kitAway);const opp=T(s.opp);
     return `<button class="evc game ${fin?'done':''} ${past?'past':''}" data-open-event="${esc(it.uid)}"><div class="evc-date"><b class="display">${day}</b><small>${wd} · ${mo}</small></div><div class="evc-main"><div class="evc-top">${crest(s.opp,'md')}<div class="evc-title"><small>${s.at==='home'?'HOME · vs':'AWAY · at'}</small><b>${esc(opp.short)}</b></div>${fin?`<span class="evc-score display">${s.gf}–${s.ga}<small>${s.gf>s.ga?'W':s.gf<s.ga?'L':'D'}</small></span>`:''}</div><div class="evc-meta">${m.time?`<span>⏱ ${esc(m.time)} PT</span>`:'<span>⏱ TBD</span>'}${it.where?`<span>📍 ${esc(it.where.split('·')[0].trim())}</span>`:''}${kit&&!fin?`<span><i class="kit-swatch" style="background:${KIT_SWATCH[kit]||'#999'}"></i>${esc(kit)}</span>`:''}</div>${sum?`<div class="evc-av">${sum}</div>`:''}</div><span class="evc-chev">›</span></button>`}
@@ -2918,15 +2990,16 @@ function teamCalendar(){const t=todayISO();const all=calendarItems();const done=
     <div class="controls" style="margin-bottom:10px"><div class="seg" role="group" aria-label="Show">${[['calendar','📅 Calendar'],['all','Everything'],['gold','Gold only'],['results','Results'],['upcoming','Upcoming']].map(([v,l])=>`<button data-mode="${v}" aria-pressed="${state.gamesMode===v}">${l}</button>`).join('')}</div>
     <button class="btn gold sm" id="ics-all" ${up.length?'':'disabled'}>Add all ${up.length} to my phone calendar</button></div>
     ${!events.length&&state.canEdit!==true?'<p class="small muted" style="margin:0 0 10px">Team events show up here as soon as the manager posts them; practices live in the Practices tab. Games come from the official schedule.</p>':''}
-    ${state.canEdit===true?'<p class="small fg2" style="margin:0 0 10px">You’re the manager — add events in <b>More → Manager mode → Practices & events</b>.</p>':''}
+    ${fbx12On()?fbx12AddEvent('event'):state.canEdit===true?'<p class="small fg2" style="margin:0 0 10px">Turn on <b>Admin</b> at the top to add or change events here.</p>':''}
     <div class="rows">${group(up)||'<div class="empty">Nothing scheduled ahead.</div>'}</div>
     ${past.length?`<details style="margin-top:12px"><summary class="small fg2" style="cursor:pointer">Past (${past.length})</summary><div class="rows" style="margin-top:8px">${group(past)}</div></details>`:''}
     <details class="howto" style="margin-top:12px"><summary>About this calendar</summary><p>Games come from the official ECNL schedule and update automatically every weekend. Practices and events are posted by the team manager. Tap <b>+📅</b> on anything to add it to your phone’s calendar, or add them all at once.</p></details></section>`}
-function practicesView(){const t=todayISO();const all=events.filter(e=>(e.kind||'event')==='practice').map((e,i)=>({uid:'e'+(e.id||i),kind:'practice',date:e.date,time:e.time,title:e.title,where:e.where||'',notes:e.notes||'',minutes:e.minutes||90,e})).sort((a,b)=>fbx7Key(a.date,a.time).localeCompare(fbx7Key(b.date,b.time)));
+function practicesView(){const t=todayISO();const all=fbx12Events().filter(e=>(e.kind||'event')==='practice').map((e,i)=>({uid:'e'+(e.id||i),kind:'practice',date:e.date,time:e.time,title:e.title,where:e.where||'',notes:e.notes||'',minutes:e.minutes||90,e})).sort((a,b)=>fbx7Key(a.date,a.time).localeCompare(fbx7Key(b.date,b.time)));
   const fbx7Over=i=>Date.now()>fbx7PtMs(i.date,fbx7Hm(i.time))+(fbx7Hm(i.time)?(i.minutes||90)*60e3:24*3600e3);const up=all.filter(i=>i.date>=t&&!fbx7Over(i)),past=all.filter(i=>i.date<t||fbx7Over(i)).reverse();const nx=up[0];
   const byDay={};for(const i of up)(byDay[i.date]=byDay[i.date]||[]).push(i);
   const weekdays=[...new Set(up.map(i=>new Date(i.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long'})))];
-  return `<section class="card practices-hero">${nx?`<div class="eyebrow">Next practice</div><div class="pr-next"><div class="pr-date display">${fmtDate(nx.date,{weekday:'long'})}<small>${fmtDate(nx.date,{month:'short',day:'numeric'})}${nx.time?' · '+esc(nx.time)+' PT':''}</small></div><div class="pr-where">${nx.where?`<a href="https://www.google.com/maps/search/${encodeURIComponent(nx.where.split('·')[0].trim())}" target="_blank" rel="noreferrer">📍 ${esc(nx.where)} ↗</a>`:''}${nx.notes?`<div class="small fg2">${esc(nx.notes)}</div>`:''}</div></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn gold" data-ics="${esc(nx.uid)}">+📅 Add to my calendar</button><button class="btn ghost" id="ics-practices">Add all ${up.length} practices</button></div>`:`<div class="eyebrow">Practices</div><h3 style="margin:6px 0 4px">No practices posted yet</h3><p class="small fg2" style="margin:0">${state.canEdit===true?'Add them in More → Manager mode → Practices & events (set “repeat weekly” to post a whole block at once).':'They show up here as soon as the team manager posts them.'}</p>`}</section>
+  return `<section class="card practices-hero">${nx?`<div class="eyebrow">Next practice</div><div class="pr-next"><div class="pr-date display">${fmtDate(nx.date,{weekday:'long'})}<small>${fmtDate(nx.date,{month:'short',day:'numeric'})}${nx.time?' · '+esc(nx.time)+' PT':''}</small></div><div class="pr-where">${nx.where?`<a href="https://www.google.com/maps/search/${encodeURIComponent(nx.where.split('·')[0].trim())}" target="_blank" rel="noreferrer">📍 ${esc(nx.where)} ↗</a>`:''}${nx.notes?`<div class="small fg2">${esc(nx.notes)}</div>`:''}</div></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn gold" data-ics="${esc(nx.uid)}">+📅 Add to my calendar</button><button class="btn ghost" id="ics-practices">Add all ${up.length} practices</button></div>`:`<div class="eyebrow">Practices</div><h3 style="margin:6px 0 4px">No practices posted yet</h3><p class="small fg2" style="margin:0">${state.canEdit===true?(fbx12On()?'Use “Add practices” below (set “repeat weekly” to post a whole block at once).':'Turn on <b>Admin</b> at the top to add them.'):'They show up here as soon as the team manager posts them.'}</p>`}</section>
+  ${fbx12AddEvent('practice')}
   ${weekdays.length?`<div class="banner" style="margin-bottom:12px">Usual days: <b>${weekdays.join(' · ')}</b>${up[0]&&up[0].where?` · ${esc(up[0].where.split('·')[0].trim())}`:''}</div>`:''}
   <section class="card"><div class="card-h"><h3>Upcoming practices</h3><small>${up.length} scheduled</small></div><div class="rows">${Object.keys(byDay).sort().map((d,i,arr)=>`${i===0||d.slice(0,7)!==arr[i-1].slice(0,7)?`<div class="month-head">${fmtDate(d,{month:'long',year:'numeric'})}</div>`:''}${byDay[d].map(eventCard).join('')}`).join('')||'<div class="empty">Nothing scheduled.</div>'}</div>
   ${past.length?`<details style="margin-top:12px"><summary class="small fg2" style="cursor:pointer">Past practices (${past.length})</summary><div class="rows" style="margin-top:8px">${past.map(eventCard).join('')}</div></details>`:''}</section>`}
@@ -2962,7 +3035,7 @@ function predict(){
   const lastCall=lastCallResult();
   const callCard=sel?`<section class="card callit"><div class="card-h"><h3>Call it</h3><div class="seg sm" role="group" aria-label="Which games"><button data-callmode="gold" aria-pressed="${mode==='gold'}">Gold games</button><button data-callmode="other" aria-pressed="${mode==='other'}">Other games</button></div></div>
     ${mode==='other'?`<div class="call-list">${otherOpen.slice(0,12).map(m=>`<button class="call-chip ${m.id===sel.id?'on':''}" data-callgame="${m.id}">${fmtDate(m.date)} · ${esc(T(m.home).short)} v ${esc(T(m.away).short)}</button>`).join('')}</div>`:''}
-    <div class="call-nav"><button class="btn quiet sm" data-callnav="-1" ${idx<=0?'disabled':''} aria-label="Previous game">‹</button><div class="call-when"><b>${fmtDate(sel.date,{weekday:'long',month:'short',day:'numeric'})}</b><small>${sel.time?esc(sel.time)+' PT':'time TBD'}${sel.venue?' · '+esc(sel.venue.split('·')[0].trim()):''}${mode==='gold'&&list.length>1?` · game ${idx+1} of ${list.length}`:''}</small></div><button class="btn quiet sm" data-callnav="1" ${idx>=list.length-1?'disabled':''} aria-label="Next game">›</button></div>
+    <div class="call-nav"><button class="fbx13-nav" data-callnav="-1" ${idx<=0?'disabled':''} aria-label="Previous game"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button><div class="call-when"><b>${fmtDate(sel.date,{weekday:'long',month:'short',day:'numeric'})}</b><small><span class="fbx13-nw">${sel.time?esc(sel.time)+' PT':'time TBD'}</span>${sel.venue?' · <span class="fbx13-nw">'+esc(sel.venue.split('·')[0].trim())+'</span>':''}${mode==='gold'&&list.length>1?` · <span class="fbx13-nw">game ${idx+1} of ${list.length}</span>`:''}</small></div><button class="fbx13-nav" data-callnav="1" ${idx>=list.length-1?'disabled':''} aria-label="Next game"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
     <div class="board">
       <div class="board-side">${crest(sel.home,'xl')}<b>${esc(T(sel.home).short)}</b>${sel.home===GOLD?'<small class="ours-tag">OUR TEAM</small>':''}</div>
       <div class="board-digits"><div class="digit-wrap"><button class="digit display" data-dig="h+1" aria-label="${esc(T(sel.home).short)} goals: ${draft[0]}, tap to add">${draft[0]}</button><button class="digit-minus" data-dig="h-1" aria-label="minus">−</button></div><span class="board-colon display">:</span><div class="digit-wrap"><button class="digit display" data-dig="a+1" aria-label="${esc(T(sel.away).short)} goals: ${draft[1]}, tap to add">${draft[1]}</button><button class="digit-minus" data-dig="a-1" aria-label="minus">−</button></div></div>
@@ -3040,11 +3113,12 @@ function squadSection(){
   const games=goldMatches().filter(isFinal);const done=games.filter(m=>(scorers[m.id]||[]).some(r=>r.g>0)).length;
   return `<section class="card" id="squad"><div class="card-h"><h3>Trading cards</h3><small>${roster.length} cards · tap to flip</small></div>
    ${top?`<div class="banner" style="margin-bottom:12px">🥇 <b>Golden Boot:</b> ${pname(top,full)} · ${top.g} ${top.g===1?'goal':'goals'}${top.a?` · ${top.a} ${top.a===1?'assist':'assists'}`:''}</div>`:''}
-   <p class="small fg2" style="margin:0 0 10px">${g.gf} team goals this season · scorers filled in for ${done} of ${games.length} games${tg?` · ${tg} goals and ${ta} assists credited so far`:''}.${state.canEdit===true?' Add a game with <b>Report goals, assists &amp; saves</b> below.':''}</p>
+   <p class="small fg2" style="margin:0 0 10px">${g.gf} team goals this season · scorers filled in for ${done} of ${games.length} games${tg?` · ${tg} goals and ${ta} assists credited so far`:''}.${fbx12On()?' Add a game with <b>Report goals, assists &amp; saves</b> below.':''}</p>
    ${fbx9Podium(rs,full)}
    ${playerCards(rs,full)}
    ${tg?goalsBoard(rs,full):''}
    ${reportSection(games)}
+   ${fbx12CodeBox()}
    <p class="small muted" style="margin:10px 0 0">${esc(META.rosterSource||'')}</p></section>`}
 
 function badgesFor(p,rs){
@@ -3086,7 +3160,7 @@ function fbx8Keeper(num){let games=0,sv=0,gc=0,cs=0;for(const rows of Object.val
 function reportSection(games){
   if(!games.length)return '';
   /* fbx11 (Oct 18 2026): goal reports are staff-only (Pablo, coach, managers) — they save straight to the app, no codes */
-  if(state.canEdit!==true)return '';const full=!!META.fullNames;
+  if(!fbx12On())return '';const full=!!META.fullNames;
   const open=state.rep.open;const mid=state.rep.mid&&games.find(m=>m.id===state.rep.mid)?state.rep.mid:games[games.length-1].id;const m=games.find(x=>x.id===mid);const side=goldSide(m);
   const rows=state.rep.rows[mid]||fbx8Rows(mid);
   const sumG=Object.values(rows).reduce((s,r)=>s+r.g,0),sumA=Object.values(rows).reduce((s,r)=>s+r.a,0);
@@ -3098,7 +3172,7 @@ function reportSection(games){
     <div class="small fg2" style="margin-bottom:8px">Gold scored <b>${side.gf}</b> and allowed <b>${side.ga}</b> in this game. Tap + for each goal and assist. <span class="${sumG>side.gf?'flag':''}">${sumG} of ${side.gf} goals assigned${sumG>side.gf?' · ⚠ more than Gold scored — please fix before saving':''}</span>${sumA?` · ${sumA} assists`:''}</div>
     <div class="rep-row fbx8-cols" aria-hidden="true"><span style="width:34px"></span><span style="flex:1" class="fbx8-colname">Player</span><span class="fbx8-col">Goals</span><span class="fbx8-col">Assists</span></div><div class="rep-list">${roster.slice().sort((a,b)=>a.num-b.num).map(p=>{const r=rows[p.num]||{g:0,a:0};return `<div class="rep-row ${r.g||r.a?'on':''}"><span class="num display" style="font-size:22px;color:var(--gold-2);width:34px;text-align:center">${p.num}</span><span class="pn" style="flex:1;font-weight:600;font-size:13.5px">${pname(p,full)}</span><span class="rep-ctl"><button data-rep="${mid}:${p.num}:g:-1" aria-label="minus goal">−</button><b class="num">${r.g}</b><button data-rep="${mid}:${p.num}:g:1" aria-label="plus goal">+</button></span><span class="rep-ctl"><button data-rep="${mid}:${p.num}:a:-1" aria-label="minus assist">−</button><b class="num">${r.a}</b><button data-rep="${mid}:${p.num}:a:1" aria-label="plus assist">+</button></span></div>`}).join('')}</div>
     <div class="fbx8-gk"><div class="eyebrow" style="margin:16px 0 6px">🧤 Goalkeeping</div><p class="small fg2" style="margin:0 0 8px">Who played in goal? Tap everyone who did (keepers often switch at halftime).</p><div class="fbx8-chips">${roster.slice().sort((a,b)=>a.num-b.num).map(p=>`<button class="fbx8-chip ${rows[p.num]&&rows[p.num].k?'on':''}" data-fbx8-gk="${mid}:${Number(p.num)}" aria-pressed="${!!(rows[p.num]&&rows[p.num].k)}"><b>${Number(p.num)}</b> ${pname(p,full)}</button>`).join('')}</div>${Object.entries(rows).filter(([,v])=>v.k).length?`<div class="rep-row fbx8-cols" aria-hidden="true" style="margin-top:10px"><span style="width:34px"></span><span style="flex:1" class="fbx8-colname">Keeper</span><span class="fbx8-col">Saves</span><span class="fbx8-col">Goals allowed</span></div><div class="rep-list">${Object.entries(rows).filter(([,v])=>v.k).sort((x,y)=>+x[0]-+y[0]).map(([n,v])=>{const p=roster.find(q=>q.num===+n);return `<div class="rep-row on"><span class="num display" style="font-size:22px;color:var(--gold-2);width:34px;text-align:center">${Number(n)}</span><span class="pn" style="flex:1;font-weight:600;font-size:13.5px">${p?pname(p,full):'#'+Number(n)}</span><span class="rep-ctl"><button data-rep="${mid}:${Number(n)}:sv:-1" aria-label="minus save">−</button><b class="num">${v.sv||0}</b><button data-rep="${mid}:${Number(n)}:sv:1" aria-label="plus save">+</button></span><span class="rep-ctl"><button data-rep="${mid}:${Number(n)}:gc:-1" aria-label="minus goal allowed">−</button><b class="num">${v.gc||0}</b><button data-rep="${mid}:${Number(n)}:gc:1" aria-label="plus goal allowed">+</button></span></div>`}).join('')}</div>${(()=>{const t=Object.values(rows).filter(v=>v.k).reduce((a,v)=>a+(v.gc||0),0);return t!==(side.ga||0)?`<div class="small fg2" style="margin-top:6px"><span class="flag">Goals allowed add up to ${t}, but the score shows ${side.ga||0}.</span></div>`:''})()}`:''}</div>
-    ${code?`<div style="margin-top:10px">${canSave?`<button class="btn gold wide" id="rep-save">Save to the app ✓</button><p class="small muted" style="margin:6px 0 0">You’re signed in as the manager — this publishes straight away.</p>`:`<div class="eyebrow" style="margin-bottom:6px">Send to Pablo</div><div class="code-box" id="rep-code">${esc(code)}</div><div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button class="btn gold" id="rep-copy">Copy report</button><button class="btn ghost" id="rep-copy-msg">Copy as text message</button></div><p class="small muted" style="margin:6px 0 0">Pablo pastes it into manager mode and it shows up for everyone.</p>`}</div>`:''}
+    ${code?`<div style="margin-top:10px">${canSave?`<button class="btn gold wide" id="rep-save">Add to my changes ✓</button><p class="small muted" style="margin:6px 0 0">Then tap <b>Publish</b> at the bottom to post it for everyone.</p>`:`<div class="eyebrow" style="margin-bottom:6px">Send to Pablo</div><div class="code-box" id="rep-code">${esc(code)}</div><div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button class="btn gold" id="rep-copy">Copy report</button><button class="btn ghost" id="rep-copy-msg">Copy as text message</button></div><p class="small muted" style="margin:6px 0 0">Pablo pastes it into manager mode and it shows up for everyone.</p>`}</div>`:''}
    </div>`:''}</div>`}
 
 function coachSection(){
@@ -3114,7 +3188,7 @@ function contactBlock(c,mgrs){
   const people=[c,...mgrs].map(fbx7Fill);const any=people.some(p=>p.phone||p.email);
   const row=p=>`<div class="contact-row"><div class="contact-who"><b>${esc(p.name)}</b><small>${esc(p.role)}</small></div><div class="contact-links">${p.phone?`<span class="contact-item"><a href="tel:${esc(p.phone.replace(/[^+\d]/g,''))}">📞 ${esc(p.phone)}</a><button class="btn quiet sm" data-copy="${esc(p.phone)}" aria-label="Copy phone">copy</button></span>`:''}${p.email?`<span class="contact-item"><a href="mailto:${esc(p.email)}">✉️ ${esc(p.email)}</a><button class="btn quiet sm" data-copy="${esc(p.email)}" aria-label="Copy email">copy</button></span>`:''}${!p.phone&&!p.email?(p.locked?'<span class="small muted">🔒 Phone & email for signed-in team families</span>':'<span class="small muted">contact coming soon</span>'):''}</div></div>`;
   return `<div class="contacts"><div class="eyebrow" style="margin:14px 0 6px">Team contacts</div>${people.map(row).join('')}${any?'<p class="small muted" style="margin:6px 0 0">Tap to call or email; use copy if your phone doesn’t open the link.</p>':''}</div>`}
-function teamPhotoSection(){if(!META.teamPhoto&&!(META.moments||[]).length)return '';const mo=META.moments||[];return `<section class="card team-photo-card">${META.teamPhoto?`<img class="team-photo" src="${esc(META.teamPhoto)}" alt="${esc(META.teamName||'LAFC Gold')} team photo">${META.teamPhotoCaption?`<div class="small muted" style="margin:8px 6px 0">${esc(META.teamPhotoCaption)}</div>`:''}`:''}${mo.length?`<div class="eyebrow" style="margin:14px 6px 6px">Moments</div><div class="moments">${mo.map(m=>m.video?`<figure><video src="${esc(m.video)}" poster="${esc(m.poster||'')}" controls playsinline preload="none"></video><figcaption>${esc(m.caption||'')}</figcaption></figure>`:`<figure><img src="${esc(m.src)}" alt="${esc(m.caption||'')}" loading="lazy"><figcaption>${esc(m.caption||'')}</figcaption></figure>`).join('')}</div>`:''}<div class="moments-add"><button class="btn gold" id="mom-add">📸 Add a moment</button><input type="file" id="mom-file" accept="image/*,video/*" hidden>${fbx7Safe(META.momentsAlbum)?`<a class="btn ghost" href="${esc(fbx7Safe(META.momentsAlbum))}" target="_blank" rel="noreferrer">Team album ↗</a>`:''}<span class="small muted">Pick a photo — it’s shrunk on your phone first, so nothing heavy gets sent${state.canEdit===true?' — and you publish it straight to the page.':'. Then it goes to Pablo and he puts it up here.'}</span></div><div id="mom-preview"></div></section>`}
+function teamPhotoSection(){if(!META.teamPhoto&&!(META.moments||[]).length)return '';const mo=META.moments||[];return `<section class="card team-photo-card">${META.teamPhoto?`<img class="team-photo" src="${esc(META.teamPhoto)}" alt="${esc(META.teamName||'LAFC Gold')} team photo">${META.teamPhotoCaption?`<div class="small muted" style="margin:8px 6px 0">${esc(META.teamPhotoCaption)}</div>`:''}`:''}${mo.length?`<div class="eyebrow" style="margin:14px 6px 6px">Moments</div><div class="moments">${mo.map(m=>m.video?`<figure><video src="${esc(m.video)}" poster="${esc(m.poster||'')}" controls playsinline preload="none"></video><figcaption>${esc(m.caption||'')}</figcaption></figure>`:`<figure><img src="${esc(m.src)}" alt="${esc(m.caption||'')}" loading="lazy"><figcaption>${esc(m.caption||'')}</figcaption></figure>`).join('')}</div>`:''}<div class="moments-add"><button class="btn gold" id="mom-add">📸 Add a moment</button><input type="file" id="mom-file" accept="image/*,video/*" hidden>${fbx7Safe(META.momentsAlbum)?`<a class="btn ghost" href="${esc(fbx7Safe(META.momentsAlbum))}" target="_blank" rel="noreferrer">Team album ↗</a>`:''}<span class="small muted">Pick a photo — it’s shrunk on your phone first, so nothing heavy gets sent${state.canEdit===true?' — and you publish it straight to the page.':'. Then it goes to Pablo and he puts it up here.'}</span></div><div id="mom-preview"></div>${fbx12MomentsEd()}</section>`}
 /* Moments upload: shrink in the browser, then publish (owner) or send to Pablo (everyone else). */
 async function shrinkImage(file,max=1000,q=.74){const url=URL.createObjectURL(file);try{const img=await new Promise((ok,err)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=err;i.src=url});let w=img.naturalWidth,h=img.naturalHeight;const sc=Math.min(1,max/Math.max(w,h));w=Math.round(w*sc);h=Math.round(h*sc);const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);const blob=await new Promise(ok=>c.toBlob(ok,'image/jpeg',q));const dataUrl=c.toDataURL('image/jpeg',q);return{blob,dataUrl,w,h}}finally{URL.revokeObjectURL(url)}}
 const fmtKB=n=>n>1048576?(n/1048576).toFixed(1)+' MB':Math.round(n/1024)+' KB';
@@ -3131,7 +3205,7 @@ async function momentPicked(file){const box=$('#mom-preview');if(!box)return;
   const ms=$('#mom-share');if(ms)ms.onclick=async()=>{const f=new File([state.momDraft.blob],state.momDraft.name,{type:'image/jpeg'});try{await navigator.share({files:[f],title:'Moment for the Gold page',text:(cap()?cap()+' — ':'')+'for the Moments section of the Gold matchday page'})}catch(e){if(e&&e.name!=='AbortError')toast('Sharing didn’t open — try saving the photo instead')}};
   const msv=$('#mom-save');if(msv)msv.onclick=async()=>{let dl=null;try{dl=await claude.use('downloads')}catch(e){}if(!dl)dl=fbx8Dl();try{await dl.save({filename:state.momDraft.name,data:state.momDraft.blob});toast('Saved — text it to Pablo and he’ll add it')}catch(e){if(e&&e.code!=='declined')toast('Couldn’t save — screenshot the photo instead')}};
   const mc=$('#mom-cancel');if(mc)mc.onclick=()=>{state.momDraft=null;box.innerHTML='';const fi=$('#mom-file');if(fi)fi.value=''}}
-function rosterSection(){const full=!!META.fullNames;const rs=roster.slice().sort((a,b)=>a.num-b.num);return `<section class="card"><div class="card-h"><h3>Roster</h3><small>${rs.length} players · ${META.season}</small></div>${META.teamOfficial?`<div class="roster-official">${esc(META.teamOfficial)}</div>`:''}<div class="roster-list v2">${rs.map(p=>`<div class="roster-row2 static"><span class="num display">${p.num}</span><span class="rr-name">${pname(p,full)}</span><span class="rr-tags">${p.pos?`<i class="rr-pos">${esc(p.pos)}</i>`:''}</span></div>`).join('')}</div><div class="staff" style="margin-top:12px">${staff.map(s=>`<span class="chip">${esc(s.role)} · ${esc(s.name)}</span>`).join('')}</div></section>`}
+function rosterSection(){if(fbx12On())return fbx12RosterEd();const full=!!META.fullNames;const rs=roster.slice().sort((a,b)=>a.num-b.num);return `<section class="card"><div class="card-h"><h3>Roster</h3><small>${rs.length} players · ${META.season}</small></div>${META.teamOfficial?`<div class="roster-official">${esc(META.teamOfficial)}</div>`:''}<div class="roster-list v2">${rs.map(p=>`<div class="roster-row2 static"><span class="num display">${p.num}</span><span class="rr-name">${pname(p,full)}</span><span class="rr-tags">${p.pos?`<i class="rr-pos">${esc(p.pos)}</i>`:''}</span></div>`).join('')}</div><div class="staff" style="margin-top:12px">${staff.map(s=>`<span class="chip">${esc(s.role)} · ${esc(s.name)}</span>`).join('')}</div></section>`}
 function squadView(){return `${coachSection()}${teamPhotoSection()}${rosterSection()}${squadSection()}<div class="grid-2"><section class="card"><div class="card-h"><h3>How goals get counted</h3></div><p class="small fg2" style="margin:0">The league only publishes team scores, so the squad’s goals and assists come from us. After each game, Pablo, the coach or a team manager adds who scored, who set it up and who played in goal. The Golden Boot, the top-scorers podium and every player card then update for everyone.</p></section></div>`}
 /* ---------- MORE (scout, kids, share, manager) ---------- */
 function more(){
@@ -3161,9 +3235,8 @@ function more(){
   </div>
   ${window.__fbxOn&&window.GoldFB?GoldFB.membersCardHTML():''}
   <section class="card"><div class="card-h"><h3>About the data</h3><small>${esc(META.updatedBy||'')}</small></div><div class="kv"><span>Official scores checked</span><b>${esc(META.snapshotLabel)}</b></div><div class="kv"><span>Auto-refresh</span><b>Sat & Sun · morning, afternoon, night</b></div><div class="kv"><span>Teams · fixtures · played</span><b class="num">${N} · ${matches.length} · ${finals().length}</b></div>${(META.notes||[]).map(n=>`<div class="kv"><span>Note</span><b style="font-weight:500;text-align:left">${esc(n)}</b></div>`).join('')}
-    ${mgrVisible?`<div style="margin-top:12px"><button class="btn ghost wide" id="open-mgr">${state.mgr?'Close manager mode':'⚙ Manager mode'}</button></div>`:''}
-  </section>
-  ${state.mgr&&mgrVisible?manager():''}`;
+    
+  </section>`;
 }
 
 /* ---------- Manager mode ---------- */
@@ -3221,10 +3294,10 @@ async function publishChanges(){
   try{
     const fbPub=!!(window.__fbxOn&&window.GoldFB&&GoldFB.isStaff&&GoldFB.publishData);
     let art=state.artifact;if(!fbPub&&!art){try{art=await claude.use('artifact')}catch(e){art=null}}if(!fbPub&&!art)throw{code:'not_granted'};
-    const newMatches=applyEdits();const newPool=state.mgrPool||pool;const label=(state.mgrLabel??META.snapshotLabel).trim();
+    const newMatches=applyEdits();const newPool=state.mgrPool||pool;const label=(state.mgrLabel!=null&&state.mgrLabel!==META.snapshotLabel?state.mgrLabel:fbx12Stamp()).trim();
     const fin=newMatches.filter(isFinal).length;
     const newRoster=(state.mgrRoster||roster).map(({g,a,...p})=>p);const newScorers=state.mgrScorers||scorers;
-    const newData={...DATA,meta:{...META,snapshotLabel:label,lastChecked:new Date().toISOString(),updatedBy:'manager mode',moments:state.mgrMoments||META.moments||[],chatLink:state.mgrChatLink??META.chatLink??'',momentsAlbum:state.mgrAlbum??META.momentsAlbum??'',events:state.mgrEvents||events,kitHome:state.mgrKitHome??META.kitHome??'White',kitAway:state.mgrKitAway??META.kitAway??'Black',arriveMinutes:state.mgrArrive??META.arriveMinutes??45},matches:newMatches,pool:newPool,roster:newRoster,scorers:newScorers};
+    const newData={...DATA,meta:{...META,snapshotLabel:label,lastChecked:new Date().toISOString(),updatedBy:'admin mode',moments:state.mgrMoments||META.moments||[],chatLink:state.mgrChatLink??META.chatLink??'',momentsAlbum:state.mgrAlbum??META.momentsAlbum??'',events:state.mgrEvents||events,kitHome:state.mgrKitHome??META.kitHome??'White',kitAway:state.mgrKitAway??META.kitAway??'Black',arriveMinutes:state.mgrArrive??META.arriveMinutes??45},matches:newMatches,pool:newPool,roster:newRoster,scorers:newScorers};
     const out=buildPage(newData);
     const goals=Object.values(newScorers).reduce((s,rows)=>s+rows.reduce((x,r)=>x+(r.g||0),0),0);
     try{sessionStorage.setItem('gold.flash',`Published · ${fin} games played · ${goals} goals credited · ${newPool.length} pool entries`)}catch(e){}
@@ -3232,7 +3305,7 @@ async function publishChanges(){
     if(fbPub){await GoldFB.publishData(newData);pubStatus('Published! Reloading…',true);setTimeout(()=>location.reload(),900);return}
     await art.publish(out);
     pubStatus('Published! Reloading…',true);
-  }catch(e){const code=e&&e.code;const msg=code==='not_writer'||code==='not_granted'?(window.__fbxOn?'This device can’t publish — sign in with a manager, coach or owner account (More → Your account).':'This device can’t publish — sign in to Claude as the owner (Pablo) and try again.'):code==='too_big'?'Too much to save at once (photos are large) — remove a moment photo and try again.':code==='permission-denied'?'Firebase said no — your account needs the manager, coach or owner role.':code==='conflict'?'Someone else just published — reloading to the newest version.':code==='no_template'||code==='bad_template'?'The page couldn’t rebuild itself. Tell Pablo.':'Publish failed: '+(e&&e.message||code||'unknown');pubStatus(msg,true);if(code==='not_writer'||code==='not_granted')state.canEdit=false;const b=$('#mgr-publish');if(b)b.textContent='Publish changes';const r=$('#rep-save');if(r)r.textContent='Save to the app ✓';if(state.canEdit===false)render()}
+  }catch(e){const code=e&&e.code;const msg=code==='not_writer'||code==='not_granted'?(window.__fbxOn?'This device can’t publish — sign in with a manager, coach or owner account (More → Your account).':'This device can’t publish — sign in to Claude as the owner (Pablo) and try again.'):code==='too_big'?'Too much to save at once (photos are large) — remove a moment photo and try again.':code==='permission-denied'?'Firebase said no — your account needs the manager, coach or owner role.':code==='conflict'?'Someone else just published — reloading to the newest version.':code==='no_template'||code==='bad_template'?'The page couldn’t rebuild itself. Tell Pablo.':'Publish failed: '+(e&&e.message||code||'unknown');pubStatus(msg,true);if(code==='not_writer'||code==='not_granted')state.canEdit=false;const b=$('#mgr-publish');if(b)b.textContent='Publish changes';const r=$('#rep-save');if(r)r.textContent='Add to my changes ✓';if(state.canEdit===false)render()}
 }
 
 /* ---------- Wire up ---------- */
@@ -3292,7 +3365,7 @@ function wire(){
   const ma=$('#mom-add');if(ma)ma.onclick=()=>$('#mom-file')?.click();
   const mf=$('#mom-file');if(mf)mf.onchange=()=>{const f=mf.files&&mf.files[0];if(f)momentPicked(f)};
   const cf=$('#chat-fab');if(cf&&cf.tagName==='BUTTON')cf.onclick=()=>{if(window.__fbxOn&&window.GoldFB){GoldFB.openChat();return}toast('Team chat link is coming soon — Pablo is setting it up.')};
-  const rsv=$('#rep-save');if(rsv)rsv.onclick=async()=>{const mid=state.rep.mid||goldMatches().filter(isFinal).slice(-1)[0].id;const rows=Object.entries(state.rep.rows[mid]||fbx8Rows(mid)).filter(([,v])=>v.g||v.a||v.k).map(([n,v])=>({num:+n,g:v.g||0,a:v.a||0,...(v.k?{k:1,sv:v.sv||0,gc:v.gc||0}:{})}));state.mgrScorers={...(state.mgrScorers||scorers),[mid]:rows};await publishChanges()};
+  const rsv=$('#rep-save');if(rsv)rsv.onclick=async()=>{const mid=state.rep.mid||goldMatches().filter(isFinal).slice(-1)[0].id;const rows=Object.entries(state.rep.rows[mid]||fbx8Rows(mid)).filter(([,v])=>v.g||v.a||v.k).map(([n,v])=>({num:+n,g:v.g||0,a:v.a||0,...(v.k?{k:1,sv:v.sv||0,gc:v.gc||0}:{})}));state.mgrScorers={...(state.mgrScorers||scorers),[mid]:rows};renderKeepScroll();toast('Added — tap Publish at the bottom to post it')};
   const om=$('#open-mgr');if(om)om.onclick=async()=>{state.mgr=!state.mgr;if(state.mgr&&state.canEdit==null)await checkAccess();render();if(state.mgr)setTimeout(()=>$('#mgr')?.scrollIntoView({behavior:'smooth'}),30)};
   $$('[data-mgr]').forEach(inp=>{inp.onchange=()=>{const [id,f]=inp.dataset.mgr.split(':');const m=matches.find(x=>x.id===id);const e=state.mgrEdits[id]||{};let v=inp.value;if(f==='hg'||f==='ag'){v=v===''?null:Math.max(0,Math.min(30,Math.round(+v)))}if(f==='kit'&&v==='')v=null;e[f]=v;if((f==='hg'||f==='ag')&&v!=null){const other=f==='hg'?'ag':'hg';if((e[other]??m[other])!=null)e.status='final'}if(f==='status'&&v==='postponed'){e.hg=null;e.ag=null}if(f==='status'&&v!=='final'&&v!=='postponed'&&((e.hg??m.hg)!=null)){e.hg=null;e.ag=null}
     // drop no-op edits
@@ -3361,7 +3434,7 @@ checkAccess().then(()=>{if(state.tab==='more')render()});
 window.GoldApp={state,toast,matches:()=>matches,meta:()=>META,kickedOff,render,go,roster:()=>roster};
 window.addEventListener('fbx-change',()=>{if(window.GoldFB&&!GoldFB.isStaff&&state.canEdit===true&&window.__fbxOn&&!(window.claude&&claude.use))state.canEdit=false;if(window.GoldFB&&GoldFB.isStaff&&state.canEdit!==true)state.canEdit=true;const a=document.activeElement;if(a&&$('#main')&&$('#main').contains(a)&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))return;if(['more','predict','home'].includes(state.tab))renderKeepScroll()});
 /* fbx11: show or hide the staff-only game report on Squad as soon as sign-in finishes */
-let fbx11Staff=state.canEdit===true;window.addEventListener('fbx-change',()=>{const now=state.canEdit===true;if(now===fbx11Staff)return;fbx11Staff=now;if(state.tab==='squad')renderKeepScroll()});
+let fbx11Staff=state.canEdit===true;window.addEventListener('fbx-change',()=>{fbx12Header();const now=state.canEdit===true;if(now===fbx11Staff)return;fbx11Staff=now;if(state.tab==='squad')renderKeepScroll()});
 window.addEventListener('hashchange',()=>{const t=location.hash.replace('#','');if(t.startsWith('event/')){if(state.eventId!==t.slice(6)||state.tab!=='event')openEvent(t.slice(6));return}if(VALID.includes(t)&&t!==state.tab)go(t)});
 })();
 
@@ -3534,7 +3607,7 @@ G.membersCardHTML=function(){
     return `<div class="fbx-mem"><div class="fbx-av">${m.photoURL?`<img src="${fx(m.photoURL)}" alt="" referrerpolicy="no-referrer">`:fx((m.name||'?').charAt(0).toUpperCase())}</div><div class="who"><b>${fx(m.name||'(no name)')}${m.status==='pending'?' <span class="fbx-pill pending">waiting</span>':''}</b><small>${m.playerName?'Player: '+fx(m.playerName)+' · ':''}${fx(m.email||'')}</small></div>${act}</div>`};
   return `<section class="card"><div class="card-h"><h3>Team members</h3><small>${pend.length?`<b style="color:var(--gold-2)">${pend.length} waiting</b> · `:''}${list.filter(m=>m.status==='approved').length} approved</small></div>
     ${list.length?`<div>${list.map(row).join('')}</div>`:'<div class="empty">No one has asked to join yet. Share the link — people sign in and show up here for approval.</div>'}
-    <p class="small muted" style="margin:10px 0 0">Approved people can use the team chat, the shared predictions board and the calendar. ${G.isOwner?'Make managers or the coach “manager”/“coach” so they can approve people and use manager mode.':'Only Pablo can change roles.'}</p></section>`;
+    <p class="small muted" style="margin:10px 0 0">Approved people can use the team chat, the shared predictions board and the calendar. ${G.isOwner?'Make managers or the coach “manager”/“coach” so they can approve people and use Admin mode.':'Only Pablo can change roles.'}</p></section>`;
 };
 
 /* ---------- Account card + sign-in sheet ---------- */
@@ -3668,6 +3741,68 @@ checkData();
 delete G.stub;
 changed();
 </script>
+<style id="fbx12-style">
+/* Admin mode (Oct 18 2026). fbx12- names only. */
+.fbx12-ctl{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
+.fbx12-ctl .theme-toggle{margin-left:0}
+#fbx12-slot:empty{display:none}
+.fbx12-sw{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px 0 3px;border-radius:999px;border:1px solid var(--gold-dim);background:var(--bg-2);color:var(--muted);font:800 9.5px/1 var(--font-body);letter-spacing:.12em;text-transform:uppercase;cursor:pointer}
+.fbx12-knob{width:14px;height:14px;border-radius:50%;background:var(--line-2);transition:background .2s}
+.fbx12-sw.on{background:var(--gold);border-color:var(--gold);color:#1a1408}
+.fbx12-sw.on .fbx12-knob{background:#1a1408}
+@media (min-width:900px){.fbx12-ctl{flex-direction:row;align-items:center;gap:8px}.fbx12-sw{height:26px;font-size:10.5px;padding:0 10px 0 4px}.fbx12-knob{width:18px;height:18px}}
+.fbx12-note{margin:0 0 12px;padding:9px 12px;border:1px dashed var(--gold);border-radius:12px;background:rgba(201,164,92,.10);font-size:12.5px;color:var(--fg-2)}
+.fbx12-note b{color:var(--gold-2)}
+.fbx12-card{border-color:var(--gold-dim)}
+.fbx12-ed{margin:-4px 0 12px;border:1px dashed var(--gold-dim);border-radius:12px;background:rgba(201,164,92,.06);padding:0}
+.fbx12-ed>summary{list-style:none;cursor:pointer;padding:8px 12px;font-size:12px;font-weight:700;color:var(--gold-2);letter-spacing:.02em}
+.fbx12-ed>summary::-webkit-details-marker{display:none}
+.fbx12-ed.dirty{border-style:solid;border-color:var(--gold)}
+.fbx12-ed.open-static{padding:10px 12px;margin:12px 0 0}
+.fbx12-add{margin:0 0 12px;border-style:solid}
+.fbx12-add>summary{font-size:13px}
+.fbx12-f{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:flex-end;padding:2px 12px 12px}
+.fbx12-card .fbx12-f{padding:0}
+.fbx12-f label{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--muted);flex:1 1 120px;min-width:0}
+.fbx12-f label.w,.fbx12-f .w{flex-basis:100%}
+.fbx12-f input,.fbx12-f select{width:100%;min-width:0}
+.fbx12-sc span{display:flex;align-items:center;gap:6px}
+.fbx12-sc input{width:56px;text-align:center;font-weight:800}
+.fbx12-sc i{font-style:normal;color:var(--muted)}
+.fbx12-hint{font-size:11px;color:var(--muted);flex-basis:100%}
+.fbx12-ros-h{display:grid;grid-template-columns:56px 1fr 1fr 64px 36px;gap:6px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 4px}
+.fbx12-bar{z-index:45}
+/* fbx14: phones get the blinking "Scores as of" line at the top of Matchday (computers already show it in the top bar) */
+.fbx14-asof{display:flex;align-items:center;justify-content:center;gap:7px;margin:0 0 10px;font-size:12px;color:var(--fg-2)}
+.fbx14-asof b{color:var(--fg)}
+.fbx14-asof i{width:8px;height:8px;border-radius:50%;background:var(--gold);box-shadow:0 0 10px var(--gold);animation:pulse 2s infinite;flex:none}
+@media(min-width:620px){.fbx14-asof{display:none}}
+.fbx12-cnt{flex:1 1 auto;min-width:0;white-space:nowrap}
+.mgr-sticky.fbx12-bar{background:#17150f}
+:root[data-theme="light"] .mgr-sticky.fbx12-bar{background:#fffdf6}
+.fbx12-card .mgr-player{grid-template-columns:52px 1fr 1fr 56px 34px}
+.fbx12-card .mgr-player input[data-ros$=":pos"]{display:block}
+.fbx12-bar + .footer{padding-bottom:96px}
+@media (max-width:899px){.fbx12-bar{right:84px}}
+.fbx12-ros-h{grid-template-columns:52px 1fr 1fr 56px 34px}
+/* fbx13: bigger previous / next game arrows on Predict */
+.fbx13-nav{flex:0 0 auto;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;border:1.5px solid var(--gold);background:rgba(201,164,92,.14);color:var(--gold-2);cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.25);padding:0}
+.fbx13-nav svg{width:24px;height:24px}
+.fbx13-nav:active{transform:scale(.94)}
+.fbx13-nav:disabled{opacity:.28;box-shadow:none;cursor:default}
+.call-nav .call-when{min-width:0;flex:1 1 auto}
+.call-nav .call-when small{white-space:normal;overflow:visible;text-overflow:clip}
+.fbx13-nw{white-space:nowrap}
+</style>
+<style id="fbx12c-style">
+/* Oct 18 2026 (Pablo): gold instead of green for the "Scores as of" dot and everything practice-colored. fbx12c- block. */
+.live-pill i{background:var(--gold);box-shadow:0 0 10px var(--gold)}
+.evc.practice::before{background:var(--gold)}
+.ev-row.practice{background:linear-gradient(90deg,rgba(201,164,92,.12),transparent 60%)}
+.practices-hero{background:radial-gradient(120% 80% at 90% 0%,rgba(201,164,92,.20),transparent 55%),linear-gradient(165deg,#15130d,#0c0c0e 70%)}
+:root[data-theme="light"] .practices-hero{background:radial-gradient(120% 80% at 90% 0%,rgba(201,164,92,.18),transparent 55%),linear-gradient(165deg,#fdfbf5,#f4f1e8 70%)}
+.evp2-hero.practice{background:radial-gradient(120% 90% at 50% 0%,rgba(201,164,92,.28),transparent 60%),linear-gradient(170deg,#17140d,#0b0b0d 70%);border-color:rgba(201,164,92,.45)}
+</style>
 <style id="fbx10-style">
 /* Oct 18 2026: on narrow trading cards (small Android phones) keep GOALS/ASSISTS clear of the bottom team line. Cards 146px+ (iPhone, desktop) unchanged. fbx10- block. */
 @container (max-width:146px){.ncard .nc-front .nc-numwrap{height:38%}.ncard .nc-front .nc-numwrap>span{font-size:58cqw}}
