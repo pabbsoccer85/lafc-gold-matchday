@@ -3664,6 +3664,11 @@ checkData();
 delete G.stub;
 changed();
 </script>
+<style id="fbx10-style">
+/* Oct 18 2026: on narrow trading cards (small Android phones) keep GOALS/ASSISTS clear of the bottom team line. Cards 146px+ (iPhone, desktop) unchanged. fbx10- block. */
+@container (max-width:146px){.ncard .nc-front .nc-numwrap{height:38%}.ncard .nc-front .nc-numwrap>span{font-size:58cqw}}
+@container (max-width:130px){.ncard .nc-front .nc-numwrap{height:32%}.ncard .nc-front .nc-stats{padding-top:3px}}
+</style>
 <style id="fbx9-style">
 /* Top-scorers podium (Oct 18 2026). fbx9- names only. */
 .fbx9{margin:0 0 14px;padding:12px 12px 10px;border:1px solid var(--line);border-radius:var(--r,16px);background:radial-gradient(120% 90% at 50% 0%,rgba(201,164,92,.16),transparent 60%),var(--bg-2);overflow:hidden}
