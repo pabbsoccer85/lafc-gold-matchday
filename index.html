@@ -3040,7 +3040,7 @@ function squadSection(){
   const games=goldMatches().filter(isFinal);const done=games.filter(m=>(scorers[m.id]||[]).some(r=>r.g>0)).length;
   return `<section class="card" id="squad"><div class="card-h"><h3>Trading cards</h3><small>${roster.length} cards · tap to flip</small></div>
    ${top?`<div class="banner" style="margin-bottom:12px">🥇 <b>Golden Boot:</b> ${pname(top,full)} · ${top.g} ${top.g===1?'goal':'goals'}${top.a?` · ${top.a} ${top.a===1?'assist':'assists'}`:''}</div>`:''}
-   <p class="small fg2" style="margin:0 0 10px">${g.gf} team goals this season · scorers filled in for ${done} of ${games.length} games${tg?` · ${tg} goals and ${ta} assists credited so far`:''}. Parents can help: tap <b>Report goals, assists &amp; saves</b> below.</p>
+   <p class="small fg2" style="margin:0 0 10px">${g.gf} team goals this season · scorers filled in for ${done} of ${games.length} games${tg?` · ${tg} goals and ${ta} assists credited so far`:''}.${state.canEdit===true?' Add a game with <b>Report goals, assists &amp; saves</b> below.':''}</p>
    ${fbx9Podium(rs,full)}
    ${playerCards(rs,full)}
    ${tg?goalsBoard(rs,full):''}
@@ -3084,7 +3084,9 @@ function goalsBoard(rs,full){const sc=rs.filter(p=>p.g>0||p.a>0).slice(0,10);con
 function fbx8Rows(mid){const src=scorers[mid]||[];const o=Object.fromEntries(src.map(r=>[r.num,{g:r.g||0,a:r.a||0,k:r.k?1:0,sv:r.sv||0,gc:r.gc||0}]));if(!src.some(r=>r.k)){const gks=roster.filter(p=>/^GK$/i.test(p.pos||''));const gm=matches.find(x=>x.id===mid);const ga=gks.length===1&&gm&&isFinal(gm)?(goldSide(gm).ga||0):0;gks.forEach(p=>{o[p.num]={...(o[p.num]||{g:0,a:0,sv:0}),k:1,gc:ga}})}return o}
 function fbx8Keeper(num){let games=0,sv=0,gc=0,cs=0;for(const rows of Object.values(scorers))for(const r of rows)if(r.num===num&&r.k){games++;sv+=r.sv||0;gc+=r.gc||0;if(!(r.gc>0))cs++}return games?{games,sv,gc,cs}:null}
 function reportSection(games){
-  if(!games.length)return '';const full=!!META.fullNames;
+  if(!games.length)return '';
+  /* fbx11 (Oct 18 2026): goal reports are staff-only (Pablo, coach, managers) — they save straight to the app, no codes */
+  if(state.canEdit!==true)return '';const full=!!META.fullNames;
   const open=state.rep.open;const mid=state.rep.mid&&games.find(m=>m.id===state.rep.mid)?state.rep.mid:games[games.length-1].id;const m=games.find(x=>x.id===mid);const side=goldSide(m);
   const rows=state.rep.rows[mid]||fbx8Rows(mid);
   const sumG=Object.values(rows).reduce((s,r)=>s+r.g,0),sumA=Object.values(rows).reduce((s,r)=>s+r.a,0);
@@ -3130,7 +3132,7 @@ async function momentPicked(file){const box=$('#mom-preview');if(!box)return;
   const msv=$('#mom-save');if(msv)msv.onclick=async()=>{let dl=null;try{dl=await claude.use('downloads')}catch(e){}if(!dl)dl=fbx8Dl();try{await dl.save({filename:state.momDraft.name,data:state.momDraft.blob});toast('Saved — text it to Pablo and he’ll add it')}catch(e){if(e&&e.code!=='declined')toast('Couldn’t save — screenshot the photo instead')}};
   const mc=$('#mom-cancel');if(mc)mc.onclick=()=>{state.momDraft=null;box.innerHTML='';const fi=$('#mom-file');if(fi)fi.value=''}}
 function rosterSection(){const full=!!META.fullNames;const rs=roster.slice().sort((a,b)=>a.num-b.num);return `<section class="card"><div class="card-h"><h3>Roster</h3><small>${rs.length} players · ${META.season}</small></div>${META.teamOfficial?`<div class="roster-official">${esc(META.teamOfficial)}</div>`:''}<div class="roster-list v2">${rs.map(p=>`<div class="roster-row2 static"><span class="num display">${p.num}</span><span class="rr-name">${pname(p,full)}</span><span class="rr-tags">${p.pos?`<i class="rr-pos">${esc(p.pos)}</i>`:''}</span></div>`).join('')}</div><div class="staff" style="margin-top:12px">${staff.map(s=>`<span class="chip">${esc(s.role)} · ${esc(s.name)}</span>`).join('')}</div></section>`}
-function squadView(){return `${coachSection()}${teamPhotoSection()}${rosterSection()}${squadSection()}<div class="grid-2"><section class="card"><div class="card-h"><h3>How goals get counted</h3></div><p class="small fg2" style="margin:0">The league only publishes team scores, so the squad’s goals and assists come from us. After a game, anyone can open <b>Report this game’s goals</b> above, tap who scored and who set it up, and send Pablo the code. Once he adds it, the Golden Boot and every player card update for everyone.</p></section></div>`}
+function squadView(){return `${coachSection()}${teamPhotoSection()}${rosterSection()}${squadSection()}<div class="grid-2"><section class="card"><div class="card-h"><h3>How goals get counted</h3></div><p class="small fg2" style="margin:0">The league only publishes team scores, so the squad’s goals and assists come from us. After each game, Pablo, the coach or a team manager adds who scored, who set it up and who played in goal. The Golden Boot, the top-scorers podium and every player card then update for everyone.</p></section></div>`}
 /* ---------- MORE (scout, kids, share, manager) ---------- */
 function more(){
   const rows=standings(matches);const s=state.scout;const ts=rows.find(r=>r.id===s);const fc=forecast(matches);
@@ -3358,6 +3360,8 @@ checkAccess().then(()=>{if(state.tab==='more')render()});
 (function(){const last=lastGoldFinal();if(!last)return;const key='seen.'+last.id;if(store.get(key,false))return;store.set(key,true);const s=goldSide(last);if(s.gf>s.ga)setTimeout(()=>confetti(90),document.querySelector('.intro')?7500:600)})();
 window.GoldApp={state,toast,matches:()=>matches,meta:()=>META,kickedOff,render,go,roster:()=>roster};
 window.addEventListener('fbx-change',()=>{if(window.GoldFB&&!GoldFB.isStaff&&state.canEdit===true&&window.__fbxOn&&!(window.claude&&claude.use))state.canEdit=false;if(window.GoldFB&&GoldFB.isStaff&&state.canEdit!==true)state.canEdit=true;const a=document.activeElement;if(a&&$('#main')&&$('#main').contains(a)&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))return;if(['more','predict','home'].includes(state.tab))renderKeepScroll()});
+/* fbx11: show or hide the staff-only game report on Squad as soon as sign-in finishes */
+let fbx11Staff=state.canEdit===true;window.addEventListener('fbx-change',()=>{const now=state.canEdit===true;if(now===fbx11Staff)return;fbx11Staff=now;if(state.tab==='squad')renderKeepScroll()});
 window.addEventListener('hashchange',()=>{const t=location.hash.replace('#','');if(t.startsWith('event/')){if(state.eventId!==t.slice(6)||state.tab!=='event')openEvent(t.slice(6));return}if(VALID.includes(t)&&t!==state.tab)go(t)});
 })();
 
